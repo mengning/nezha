@@ -41,31 +41,6 @@
 
 int main(int argc, char **argv)
 {
-    tKey key = 0;
-    char buf[MAX_BUF_LEN] = "\0";
-    tValue setvalue;
-    tValue getvalue;
-    tDatabase db = DBCreate();
-    key = 1;
-    setvalue.str = "hello world!";
-    setvalue.len = strlen(setvalue.str);
-    /*
-     *
-     */
-    int ret = DBSetKeyValue(db,key,setvalue);
-    if(ret == FAILURE)
-    {
-        fprintf(stderr, "set error: %d:%s\n",key,setvalue.str);
-    }
-    printf("set %d:\"%s\" successfully!\n",key,setvalue.str);
-    getvalue.str = buf;
-    getvalue.len = MAX_BUF_LEN;
-    ret = DBGetKeyValue(db,key,&getvalue);
-    if(ret == FAILURE)
-    {
-        fprintf(stderr, "get error: %d\n",key);
-    } 
-    printf("get %d:\"%s\" successfully!\n",key,getvalue.str);   
-    DBDelete(db);
+    StartCmdLincEngine();
     return;
 }

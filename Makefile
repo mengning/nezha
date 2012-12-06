@@ -2,8 +2,8 @@
 
 all:	nezha
 
-nezha:	dbapi.o main.o
-	gcc -o nezha dbapi.o main.o -ltokyocabinet
+nezha:	dbapi.o cmdline.o main.o
+	gcc -o nezha dbapi.o cmdline.o main.o -ltokyocabinet
 
 .c.o:
 	gcc -c $<
