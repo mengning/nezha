@@ -50,7 +50,7 @@ typedef struct Value{
  * return	: if SUCCESS return (tDatabase *)Database handler
  *          : if FAILURE exit(-1)
  */
-tDatabase  DBCreate(void);
+tDatabase  DBCreate(const char * filename);
 	
 
 /*

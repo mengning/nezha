@@ -30,14 +30,17 @@
 /*
  * Create an Database
  */
-tDatabase  DBCreate()
+tDatabase  DBCreate(const char * filename)
 {
     int ecode;
     TCHDB *hdb;
-
+    if (filename == NULL)
+    {
+        filename = "nezha.hdb";   
+    }
     hdb = tchdbnew();
     /* open the database */
-    if(!tchdbopen(hdb, "casket.hdb", HDBOWRITER | HDBOCREAT))
+    if(!tchdbopen(hdb, filename, HDBOWRITER | HDBOCREAT))
     {
        	ecode = tchdbecode(hdb);
        	fprintf(stderr, "open error: %s\n", tchdberrmsg(ecode));
