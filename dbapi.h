@@ -44,7 +44,7 @@ typedef struct Value{
 
 /*
  * Create an Database
- * input	: None
+ * input	: filename
  * output	: None
  * in/out	: None
  * return	: if SUCCESS return (tDatabase *)Database handler
