@@ -36,6 +36,7 @@
 
 #include "dbapi.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <regex.h>
 
@@ -88,6 +89,7 @@ int ExecCmd(char * cmdbuf)
         printf("open filename - EX:open nezha.hdb\n"); 
         printf("set key value - EX:set 100 helloworld\n");
         printf("get key       - EX:get 100\n");
+        printf("delete key    - EX:delete 100\n");
         printf("close         - leave nezha.hdb\n"); 
         printf("help          - list cmds info\n"); 
     }
@@ -103,14 +105,74 @@ int ExecCmd(char * cmdbuf)
             db = DBCreate(dbname);
         }        
     }
+    else if(db == NULL && CheckCmd(cmdbuf,"set|get|delete") == 0)
+    {
+        printf("Please open a database file first.\n");
+    }
     else if(CheckCmd(cmdbuf,"close") == 0)
     {
-        DBDelete(db);
+        if(db != NULL)
+        {
+            DBDelete(db);
+            db = NULL;
+        }
         dbname[0] = '\0';     
-    }    
+    }
+    else if(CheckCmd(cmdbuf,"exit") == 0)
+    {
+        if(db != NULL)
+        {
+            DBDelete(db);
+        }
+        exit(0);     
+    }
+    else if(CheckCmd(cmdbuf,"set [0-9]* .*") == 0)
+    {
+        tKey key;
+        tValue value;
+        char str[MAX_STR_LEN] = "\0";        
+        sscanf(cmdbuf,"set %d %s",&key,str);
+        value.str = strstr(cmdbuf,str);
+        value.len = cmdbuf + MAX_STR_LEN - value.str;
+        if(DBSetKeyValue(db,key,value) != 0)
+        {
+            printf("ERROR:set %d %s\n",(int)key,value.str);
+        }
+        //printf("set %d %s\n",(int)key,value.str);
+    }
+    else if(CheckCmd(cmdbuf,"(get [0-9])") == 0)
+    {
+        tKey key = -1;
+        tValue value;
+        char str[MAX_STR_LEN] = "\0";
+        value.str = str;
+        value.len = MAX_STR_LEN;
+        sscanf(cmdbuf,"get %d",&key);        
+        if(DBGetKeyValue(db,key,&value) == 0)
+        {
+            printf("%d -> %s\n",key,value.str);
+        }
+        else
+        {
+            printf("ERROR:get %d\n",(int)key);
+        }
+    }
+    else if(CheckCmd(cmdbuf,"(delete [0-9])") == 0)
+    {
+        tKey key = -1;
+        tValue value;
+        char str[MAX_STR_LEN] = "\0";
+        value.str = str;
+        value.len = MAX_STR_LEN;
+        sscanf(cmdbuf,"delete %d",&key);        
+        if(DBDelKeyValue(db,key) != 0)
+        {
+            printf("ERROR:delete %d\n",(int)key);
+        }
+    }              
     else
     {
-        printf("Unknow Cmd!\n");   
+        printf("Unknow Command!\n");   
     }
     return 0;
 }
