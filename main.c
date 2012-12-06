@@ -38,8 +38,26 @@
 #include <stdio.h>
 #include <string.h>
 
+#define CMD_NUM     5
+#define CMD_BUF_MAX 1024
+ 
+const char * CmdPattern[CMD_NUM] = 
+{
+/* 0 */    "open",
+/* 1 */    "close",
+/* 2 */    "set( *|\\t)\\d*( *|\\t).*",
+/* 3 */    "get( *|\\t)\\d*",
+/* 4 */    "delete( *|\\t)\\d*"
+};
+char cmdbuf[CMD_BUF_MAX];
 
 int main(int argc, char **argv)
 {
+    /*start cmdline here*/
+    while(1)
+    {
+        gets(cmdbuf);
+        printf("%s\n",cmdbuf);
+    }
     return;
 }
