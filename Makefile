@@ -3,7 +3,7 @@
 all:	nezha
 
 nezha:	dbapi.o main.o
-	gcc -o nezha dbapi.o main.o -ltokyocabinet
+	gcc -o $@ $^ -ltokyocabinet
 
 .c.o:
 	gcc -c $<
