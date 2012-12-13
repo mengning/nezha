@@ -84,6 +84,7 @@ int CheckCmd(char * cmdbuf,char * pattern)
 }
 int ExecCmd(char * cmdbuf)
 {
+    char temp[MAX_STR_LEN] = "\0";
     if(CheckCmd(cmdbuf,"help") == 0 )
     {
         printf("open filename - EX:open nezha.hdb\n"); 
@@ -93,7 +94,7 @@ int ExecCmd(char * cmdbuf)
         printf("close         - leave nezha.hdb\n"); 
         printf("help          - list cmds info\n"); 
     }
-    else if(CheckCmd(cmdbuf,"open( *|\\t).*\\.hdb") == 0)
+    else if(CheckCmd(cmdbuf,"open (.*)\\.hdb") == 0)
     {
         if(strlen(dbname) > 0)
         {
@@ -101,7 +102,7 @@ int ExecCmd(char * cmdbuf)
         }
         else
         {
-            sscanf(cmdbuf,"open %s",dbname);
+            sscanf(cmdbuf,"%s%s",temp,dbname);
             db = DBCreate(dbname);
         }        
     }
@@ -126,12 +127,12 @@ int ExecCmd(char * cmdbuf)
         }
         exit(0);     
     }
-    else if(CheckCmd(cmdbuf,"set [0-9]* .*") == 0)
+    else if(CheckCmd(cmdbuf,"set ([0-9]+) (.*)") == 0)
     {
         tKey key;
         tValue value;
         char str[MAX_STR_LEN] = "\0";        
-        sscanf(cmdbuf,"set %d %s",&key,str);
+        sscanf(cmdbuf,"%s%d%s",temp,&key,str);
         value.str = strstr(cmdbuf,str);
         value.len = cmdbuf + MAX_STR_LEN - value.str;
         if(DBSetKeyValue(db,key,value) != 0)
@@ -140,14 +141,14 @@ int ExecCmd(char * cmdbuf)
         }
         //printf("set %d %s\n",(int)key,value.str);
     }
-    else if(CheckCmd(cmdbuf,"(get [0-9])") == 0)
+    else if(CheckCmd(cmdbuf,"get ([0-9]+)") == 0)
     {
         tKey key = -1;
         tValue value;
         char str[MAX_STR_LEN] = "\0";
         value.str = str;
         value.len = MAX_STR_LEN;
-        sscanf(cmdbuf,"get %d",&key);        
+        sscanf(cmdbuf,"%s%d",temp,&key);        
         if(DBGetKeyValue(db,key,&value) == 0)
         {
             printf("%d -> %s\n",key,value.str);
@@ -157,14 +158,14 @@ int ExecCmd(char * cmdbuf)
             printf("ERROR:get %d\n",(int)key);
         }
     }
-    else if(CheckCmd(cmdbuf,"(delete [0-9])") == 0)
+    else if(CheckCmd(cmdbuf,"delete ([0-9]+)") == 0)
     {
         tKey key = -1;
         tValue value;
         char str[MAX_STR_LEN] = "\0";
         value.str = str;
         value.len = MAX_STR_LEN;
-        sscanf(cmdbuf,"delete %d",&key);        
+        sscanf(cmdbuf,"%s%d",temp,&key);        
         if(DBDelKeyValue(db,key) != 0)
         {
             printf("ERROR:delete %d\n",(int)key);
