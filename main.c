@@ -155,7 +155,7 @@ int ExecCmd(char * cmdbuf)
         }
         else
         {
-            printf("ERROR:get %d\n",(int)key);
+            printf("ERROR:get %d Not found!\n",(int)key);
         }
     }
     else if(CheckCmd(cmdbuf,"delete ([0-9]+)") == 0)

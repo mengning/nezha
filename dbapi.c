@@ -97,16 +97,17 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
     int ret;
 
     ret = tchdbget3(db,&key,sizeof(tKey),pvalue->str,pvalue->len);
-    if(ret)
+    if(ret == -1)
     {
-        pvalue->str[ret] = '\0';
-        pvalue->len=ret;
-        return 0;
-    }	
-    ecode = tchdbecode(db);
-    fprintf(stderr, "get error: %s\n", tchdberrmsg(ecode));
-    
-    return -1;
+        pvalue->str[0] = '\0';
+        pvalue->len=0;
+        ecode = tchdbecode(db);
+        fprintf(stderr, "get error: %s\n", tchdberrmsg(ecode));        
+        return -1;        
+    }
+    pvalue->str[ret] = '\0';
+    pvalue->len=ret;
+    return 0;    	
 }
 
 /*
