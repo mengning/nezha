@@ -41,6 +41,7 @@
     |                                                   |
     0---------------------------------------------------31
  */
+ 
 /* operation commands */
 #define OPEN_CMD        1 /* With one data - database file name */
 #define CLOSE_CMD       2 /* With zero data */
@@ -62,9 +63,9 @@
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
-int FormatData(char * pBuf,BufSize,int cmd);
-int FormatData1(char * pBuf,BufSize,int cmd,char* pData,int DataSize);
-int FormatData2(char * pBuf,BufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size);
+int FormatData(char *pBuf,int BufSize,int cmd);
+int FormatData1(char *pBuf,int BufSize,int cmd,char* pData1,int Data1Size);
+int FormatData2(char *pBuf,int BufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size);
 /*
  * ParseData - with 0-2 data
  * input	: pBuf - point to recved packet 
@@ -74,7 +75,7 @@ int FormatData2(char * pBuf,BufSize,int cmd,char* pData1,int Data1Size,char* pDa
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
-int ParseData(char * pBuf,BufSize,int *pcmd,int * pDataNum,char* pData1,int *pData1Size,char* pData2,int *pData2Size);
+int ParseData(char *pBuf,int BufSize,int *pcmd,int *pDataNum,char *pData1,int *pData1Size,char* pData2,int *pData2Size);
         
 #endif /* _PROTOCOL_H_ */
 

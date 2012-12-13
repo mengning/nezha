@@ -18,6 +18,9 @@
  *
  */
 #include"socketwrapper.h"
+#include<stdio.h>
+#include<stdlib.h> 
+#include<string.h>
 
 #define PORT                5001
 #define IP_ADDR             "127.0.0.1"

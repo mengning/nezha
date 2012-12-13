@@ -83,7 +83,7 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
     
-    return -1;
+    return 0;
 }
 
 /*
