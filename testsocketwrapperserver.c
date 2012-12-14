@@ -1,7 +1,7 @@
 /********************************************************************/
 /* Copyright (C) SSE-USTC, 2012                                     */
 /*                                                                  */
-/*  FILE NAME             :  server.h                               */
+/*  FILE NAME             :  server.c                               */
 /*  PRINCIPAL AUTHOR      :  Mengning                               */
 /*  SUBSYSTEM NAME        :  server                                 */
 /*  MODULE NAME           :  server                                 */

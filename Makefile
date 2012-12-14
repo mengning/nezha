@@ -1,8 +1,17 @@
 # Makefile for Nezha project
 
-TARGETS = testdbapi nezha testswserver testswclient testprotocol
+TARGETS = testdbapi  testswserver testswclient testprotocol \
+          nezha nezhaserver nezhaclient
 
-all:	nezha
+all:	nezha nezhaserver nezhaclient
+
+# nezhaserver:database service
+nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o
+	gcc -o $@ $^ -ltokyocabinet
+
+# nezhaclient:database remote command line
+nezhaclient:socketwrapper.o protocol.o remotedbapi.o cmdline.o
+	gcc -o $@ $^
 
 # nezha:local command line version	
 nezha:	dbapi.o cmdline.o

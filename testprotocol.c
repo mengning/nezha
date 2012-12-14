@@ -28,8 +28,10 @@
 int main()
 {
     char Buf[MAX_BUF_LEN] = "\0";
+    int BufSize = MAX_BUF_LEN;
     char *str = "hello world!";
-    FormatData(Buf,MAX_BUF_LEN,CLOSE_CMD);
+    BufSize = MAX_BUF_LEN;
+    FormatData(Buf,&BufSize,CLOSE_CMD);
     int cmd = -1;
     int DataNum = -1;
     char Data1[MAX_BUF_LEN] = "\0";
@@ -41,7 +43,8 @@ int main()
     {
         printf("Test Zero Data Result: Pass\n");
     }
-    FormatData1(Buf,MAX_BUF_LEN,OPEN_CMD,str,strlen(str));
+    BufSize = MAX_BUF_LEN;
+    FormatData1(Buf,&BufSize,OPEN_CMD,str,strlen(str));
     ParseData(Buf,MAX_BUF_LEN,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
     if(cmd == OPEN_CMD && DataNum == 1
         && Data1Size == strlen(str)
@@ -50,7 +53,8 @@ int main()
         printf("%s\n",Data1);
         printf("Test One Data Result: Pass\n");
     }
-    FormatData2(Buf,MAX_BUF_LEN,SET_CMD,str,strlen(str),str,strlen(str));
+    BufSize = MAX_BUF_LEN;
+    FormatData2(Buf,&BufSize,SET_CMD,str,strlen(str),str,strlen(str));
     ParseData(Buf,MAX_BUF_LEN,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
     if(cmd == SET_CMD && DataNum == 2
         && Data1Size == strlen(str) && Data2Size == strlen(str)

@@ -63,9 +63,9 @@
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
-int FormatData(char *pBuf,int BufSize,int cmd);
-int FormatData1(char *pBuf,int BufSize,int cmd,char* pData1,int Data1Size);
-int FormatData2(char *pBuf,int BufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size);
+int FormatData(char *pBuf,int *pBufSize,int cmd);
+int FormatData1(char *pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size);
+int FormatData2(char *pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size);
 /*
  * ParseData - with 0-2 data
  * input	: pBuf - point to recved packet 

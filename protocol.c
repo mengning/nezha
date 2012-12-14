@@ -41,9 +41,9 @@ typedef struct DataFormat
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
-int FormatData(char * pBuf,int BufSize,int cmd)
+int FormatData(char * pBuf,int *pBufSize,int cmd)
 {
-    if(BufSize < sizeof(tDataFormat) || pBuf == NULL)
+    if(*pBufSize < sizeof(tDataFormat) || pBuf == NULL)
     {
         fprintf(stderr,"FormatData Error,%s:%d\n", __FILE__,__LINE__);
         return -1;
@@ -52,11 +52,12 @@ int FormatData(char * pBuf,int BufSize,int cmd)
     pData->cmd = htonl(cmd);
     pData->num = htonl(0);
     pData->len = htonl(0);
+    *pBufSize = sizeof(tDataFormat);
     return 0;
 }
-int FormatData1(char * pBuf,int BufSize,int cmd,char* pData1,int Data1Size)
+int FormatData1(char * pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size)
 {
-    if((BufSize < sizeof(tDataFormat) + Data1Size)
+    if((*pBufSize < sizeof(tDataFormat) + Data1Size)
         || pBuf == NULL
         || pData1 == NULL)
     {
@@ -68,13 +69,14 @@ int FormatData1(char * pBuf,int BufSize,int cmd,char* pData1,int Data1Size)
     pData->num = htonl(1);
     pData->len = htonl(Data1Size);
     memcpy(pBuf+sizeof(tDataFormat),pData1,Data1Size);
+    *pBufSize = sizeof(tDataFormat) + Data1Size;
     return 0;   
 }
-int FormatData2(char * pBuf,int BufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size)
+int FormatData2(char * pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size)
 {
     //printf("FormatData2:%s\n",pData1);
     //printf("FormatData2:%s\n",pData2);     
-    if((BufSize < sizeof(tDataFormat) + Data1Size + sizeof(int) + Data2Size)
+    if((*pBufSize < sizeof(tDataFormat) + Data1Size + sizeof(int) + Data2Size)
         || pBuf == NULL
         || pData1 == NULL
         || pData2 == NULL)
@@ -87,11 +89,10 @@ int FormatData2(char * pBuf,int BufSize,int cmd,char* pData1,int Data1Size,char*
     pData->num = htonl(2);
     pData->len = htonl(Data1Size);
     memcpy(pBuf + sizeof(tDataFormat),pData1,Data1Size);
-    int *pData2Len = pBuf + sizeof(tDataFormat) + Data1Size;
+    int *pData2Len = (int *)pBuf + sizeof(tDataFormat) + Data1Size;
     *pData2Len = htonl(Data2Size);
     memcpy(pBuf + sizeof(tDataFormat) + Data1Size + sizeof(int),pData2,Data2Size);
-    //printf("FormatData2:%s\n",pBuf + sizeof(tDataFormat));
-    //printf("FormatData2:%s\n",pBuf + sizeof(tDataFormat) + Data1Size + sizeof(int));     
+    *pBufSize = sizeof(tDataFormat) + Data1Size + sizeof(int) + Data2Size;     
     return 0;      
 }
 /*
@@ -119,7 +120,7 @@ int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *
     if(*pDataNum > 0)
     {
         int len1 = ntohl(pData->len);
-        if(BufSize < sizeof(tDataFormat) + len1
+        if(BufSize < (sizeof(tDataFormat) + len1)
             || len1 > *pData1Size)
         {
             fprintf(stderr,"Unknown Format,%s:%d\n", __FILE__,__LINE__);
@@ -130,7 +131,7 @@ int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *
     }
     if(*pDataNum > 1)
     {
-        int *pData2Len = pBuf + sizeof(tDataFormat) + *pData1Size;
+        int *pData2Len = (int*)pBuf + sizeof(tDataFormat) + *pData1Size;
         int len2 = ntohl(*pData2Len);
         if( BufSize < (sizeof(tDataFormat) + *pData1Size + sizeof(int) + len2)
             || len2 > *pData1Size)

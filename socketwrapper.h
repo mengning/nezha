@@ -79,8 +79,9 @@ int ServiceStop(tServiceHandler h);
  * input	: BufSize - the length of data bytes
  * output	: None
  * in/out	: None
- * return	: if SUCCESS return 0
+ * return	: if SUCCESS return BufSize sended
  *          : if FAILURE return (-1)
+ *          : if Connection Terminals return 0
  */
 int SendData(tServiceHandler h,char * pBuf,int BufSize);
 /*
@@ -88,8 +89,9 @@ int SendData(tServiceHandler h,char * pBuf,int BufSize);
  * input	: h - it MUST BE what ServiceStart or OpenRemoteService returns.
  * in/out	: pBuf - point to memory that will store recved data
  * in/out	: pBufSize - the max length of data to recv
- * return	: if SUCCESS return 0
+ * return	: if SUCCESS return BufSize recved
  *          : if FAILURE return (-1)
+ *          : if Connection Terminals return 0
  */
 int RecvData(tServiceHandler h,char * pBuf,int *pBufSize);
 

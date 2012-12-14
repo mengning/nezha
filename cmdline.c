@@ -118,7 +118,7 @@ int ExecCmd(char * cmdbuf)
         char str[MAX_STR_LEN] = "\0";        
         sscanf(cmdbuf,"%s%d%s",temp,&key,str);
         value.str = strstr(cmdbuf,str);
-        value.len = cmdbuf + MAX_STR_LEN - value.str;
+        value.len = strlen(value.str);//cmdbuf + MAX_STR_LEN - value.str;
         if(DBSetKeyValue(db,key,value) != 0)
         {
             printf("ERROR:set %d %s\n",(int)key,value.str);

@@ -166,37 +166,40 @@ int ServiceStop(tServiceHandler h)
  * input	: BufSize - the length of data bytes
  * output	: None
  * in/out	: None
- * return	: if SUCCESS return 0
+ * return	: if SUCCESS return BufSize sended
  *          : if FAILURE return (-1)
+ *          : if Connection Terminals return 0
  */
 int SendData(tServiceHandler h,char * pBuf,int BufSize)
 {
     int ret = send(h,pBuf,BufSize,0);
-    if(ret <= 0)
+    if(ret < 0 || ret != BufSize)
     {
         fprintf(stderr,"Send Error,%s:%d\n",__FILE__,__LINE__);
         return -1;
     }
-    return 0;
+    return ret;
 }
 /*
  * SendData - send data to peer side
  * input	: h - it MUST BE what ServiceStart or OpenRemoteService returns.
  * in/out	: pBuf - point to memory that will store recved data
  * in/out	: pBufSize - the max length of data to recv
- * return	: if SUCCESS return 0
+ * return	: if SUCCESS return BufSize recved
  *          : if FAILURE return (-1)
+ *          : if Connection Terminals return 0
  */
 int RecvData(tServiceHandler h,char * pBuf,int *pBufSize)
 {
     int ret = recv(h,pBuf,*pBufSize,0);
-    if(ret <= 0)
+    if(ret < 0)
     {
-        fprintf(stderr,"Send Error,%s:%d\n",__FILE__,__LINE__);
+        fprintf(stderr,"Recv Error,%s:%d\n",__FILE__,__LINE__);
+        *pBufSize = 0;
         return -1;
     }
     *pBufSize = ret;
-    return 0;
+    return ret;
 }
 
         
