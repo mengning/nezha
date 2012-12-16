@@ -25,10 +25,16 @@
 #include <tcutil.h>
 #include <tchdb.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
+TCMDB * allOpenedDB = NULL;
 
+typedef struct OpenedDB
+{
+    TCHDB *hdb;
+    int counter;
+}tOpenedDB;
 /*
  * Create an Database
  */
@@ -40,6 +46,23 @@ tDatabase  DBCreate(const char * filename)
     {
         filename = "nezha.hdb";   
     }
+    if(allOpenedDB == NULL)
+    {
+        allOpenedDB = tcmdbnew();
+    }
+    else
+    {
+        int vsize = -1;
+        tOpenedDB *opendb = (tOpenedDB*)tcmdbget(allOpenedDB,(void*)filename,strlen(filename),&vsize);
+        if(opendb != NULL)
+        {
+            hdb = opendb->hdb;
+            opendb->counter ++ ;
+            tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)opendb,vsize);
+            free(opendb);
+            return (tDatabase)hdb;
+        }
+    }
     hdb = tchdbnew();
     /* open the database */
     if(!tchdbopen(hdb, filename, HDBOWRITER | HDBOCREAT))
@@ -48,7 +71,10 @@ tDatabase  DBCreate(const char * filename)
        	fprintf(stderr, "open error: %s\n", tchdberrmsg(ecode));
        	exit(-1);
     }
-
+    tOpenedDB db;
+    db.hdb = hdb;
+    db.counter = 1;
+    tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)&db,sizeof(tOpenedDB));
     return (tDatabase)hdb;
 
 }
@@ -58,17 +84,50 @@ tDatabase  DBCreate(const char * filename)
  */
 int DBDelete(tDatabase db)
 {
-    int ecode;
-
-    if(!tchdbclose(db))
+    TCHDB * hdb = (TCHDB*)db;
+    int i;
+    long sum = (long)tcmdbrnum(allOpenedDB);
+    tcmdbiterinit(allOpenedDB);
+    for(i = 0;i < sum;i++)
     {
-       	ecode = tchdbecode(db);
-       	fprintf(stderr, "close error: %s\n", tchdberrmsg(ecode));
-       	exit(-1);
+        int ksize = -1;
+        char * filename = (char*)tcmdbiternext(allOpenedDB,&ksize);
+        if(filename == NULL)
+        {
+            fprintf(stderr,"DBDelete:Can't find the database,%s:%d\n",__FILE__,__LINE__);
+            break;
+        }
+        int vsize = -1;
+        tOpenedDB *opendb = (tOpenedDB*)tcmdbget(allOpenedDB,(void*)filename,ksize,&vsize);
+        if(opendb != NULL && opendb->hdb == hdb)
+        {
+            opendb->counter -- ;
+            if(opendb->counter <= 0)
+            {
+                /* remove this record */
+                tcmdbout(allOpenedDB,(void*)filename,ksize);
+                free(filename);
+                free(opendb);
+                break;
+            }
+            /* update this record counter -- */
+            tcmdbput(allOpenedDB,(void*)filename,ksize,(void*)opendb,vsize);
+            free(filename);
+            free(opendb);            
+            return 0;
+        } 
+        free(filename);
+        free(opendb);
     }
-
-    tchdbdel(db);
-
+   
+    int ecode;
+    if(!tchdbclose(hdb))
+    {
+       	ecode = tchdbecode(hdb);
+       	fprintf(stderr, "close error: %s\n", tchdberrmsg(ecode));
+       	return (-1);
+    }
+    tchdbdel(hdb);
     return 0;
 }
 
