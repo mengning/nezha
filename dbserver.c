@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #define PORT                5001
 #define IP_ADDR             "127.0.0.1"
@@ -34,20 +35,26 @@
 
 #define debug               
 
-tDatabase  db = NULL;
+
 
 int HandleRequests(tServiceHandler h);
 
 int main()
 {
+    pthread_t thread_id;
     /* Server Engine for Client's Connections */
     tServiceHandler h = -1;
     InitializeNetService(IP_ADDR,PORT);
     while(1)
     {
         h = ServiceStart();
-        HandleRequests(h);  
-        ServiceStop(h); 
+        if(pthread_create(&thread_id,NULL, (void*)HandleRequests,(void*)h) != 0)
+        {
+            fprintf(stderr,"pthread_create Error,%s:%d\n",__FILE__,__LINE__);
+            ServiceStop(h);            
+        }
+        //HandleRequests(h);  
+        //ServiceStop(h); 
     }
     ShutdownNetService();
     return 0;
@@ -63,6 +70,7 @@ int ErrorResponse(tServiceHandler h,char * errorinfo)
 
 int HandleRequests(tServiceHandler h)
 {
+    tDatabase  db = NULL;
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
     int cmd = -1;
@@ -78,6 +86,7 @@ int HandleRequests(tServiceHandler h)
         if(RecvData(h,Buf,&BufSize) == 0)
         {
             fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
+            ServiceStop(h);
             return -1;            
         }
         if(BufSize == 0)
@@ -106,7 +115,8 @@ int HandleRequests(tServiceHandler h)
             DBDelete(db);
             BufSize = MAX_BUF_LEN;
             FormatData(Buf,&BufSize,CLOSE_RSP);
-            SendData(h,Buf,BufSize);            
+            SendData(h,Buf,BufSize); 
+            ServiceStop(h);           
             return 0;
         }
         else if(cmd == GET_CMD && DataNum == 1)
