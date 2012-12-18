@@ -18,6 +18,7 @@
  *
  * Created by Mengning ,2012/5/30
  * Modify for Nezha project,by Mengning,2012/11/27
+ * Support Memory Database(no file) Operations,by Mengning,2012/12/18
  *
  */
 
@@ -35,8 +36,13 @@ typedef struct OpenedDB
     TCHDB *hdb;
     int counter;
 }tOpenedDB;
+/**********************************************/
+/* Database(have a file) Operations
+/**********************************************/
+
 /*
  * Create an Database
+ * NOTICE:Avoid openning one database file twice,and support multi-thread operations
  */
 tDatabase  DBCreate(const char * filename)
 {
@@ -185,3 +191,83 @@ int DBDelKeyValue(tDatabase db,tKey key)
     }
     return 0;
 }
+
+/**********************************************/
+/* Memory Database(no file) Operations
+/**********************************************/
+/*
+ * Create an Memory Database
+ * input	: None
+ * output	: None
+ * in/out	: None
+ * return	: if SUCCESS return (tDatabase *)Database handler
+ *          : if FAILURE exit(-1)
+ */
+tDatabase  MDBCreate()
+{
+    TCMDB * mdb = tcmdbnew();
+    return (tDatabase)mdb;
+}
+	
+/*
+ * Delete the Database
+ * input	: tDatabase db
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/exit(-1)
+ */
+int MDBDelete(tDatabase mdb)
+{
+    tcmdbdel((TCMDB*)mdb);
+    return 0;
+}
+
+
+/*
+ * Set key/value
+ * input	: tKey key,tValue value - one key/value
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */	
+int MDBSetKeyValue(tDatabase mdb,tKey key,tValue value)
+{
+    tcmdbput((TCMDB*)mdb,(void*)&key,sizeof(tKey),value.str,value.len); 
+    return 0;   
+}
+
+/*
+ * get key/value
+ * input	: tKey key
+ * output	: None
+ * in/out	: tValue *pvalue MUST BE initialized,it means pvalue->str is malloced,
+            : and pvalue->len is the length of pvalue->str 
+            : if return SUCCESS(0),value will stored in pvalue(str,len).
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */
+int MDBGetKeyValue(tDatabase mdb,tKey key,tValue *pvalue)
+{
+    int vsize = -1;
+    char *v = tcmdbget((TCMDB*)mdb,(void*)&key,sizeof(tKey),&vsize);
+    if(v != NULL && vsize > 0 && vsize <= pvalue->len)
+    {
+        memcpy(pvalue->str,v,vsize);
+        pvalue->len = vsize;
+        return 0;
+    }
+    return -1;
+}
+
+/*
+ * delete key/value
+ * input	: tKey key
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */
+int MDBDelKeyValue(tDatabase mdb,tKey key)
+{
+    tcmdbout((TCMDB*)mdb,(void*)&key,sizeof(tKey));
+    return 0;
+}
+

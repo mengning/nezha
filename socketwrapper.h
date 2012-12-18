@@ -8,21 +8,23 @@
 /*  MODULE NAME           :  socketwraper                           */
 /*  LANGUAGE              :  C                                      */
 /*  TARGET ENVIRONMENT    :  Any                                    */
-/*  DATE OF FIRST RELEASE :  2012/12/18                             */
+/*  DATE OF FIRST RELEASE :  2012/12/13                             */
 /*  DESCRIPTION           :  the interface to Linux system(socket)  */
 /********************************************************************/
 
 /*
  * Revision log:
  *
- * Created by Mengning,2012/12/18
+ * Created by Mengning,2012/12/13
+ * Support epoll,by Mengning,2012/12/18
  *
  */
 
 #ifndef _SOCKET_WRAPER_H_
 #define _SOCKET_WRAPER_H_
 
-#define MAX_CONNECT_QUEUE   128
+#define MAX_LISTEN_QUEUE    4
+#define MAX_CONNECT_FD      1024
 typedef int                 tServiceHandler;
 /*
  * InitServer
@@ -55,7 +57,8 @@ tServiceHandler OpenRemoteService(char * addr,short int port);
  */
 int CloseRemoteService(tServiceHandler h);
 /*
- * ServiceStart - Only used in Sever side,when client connects it return.
+ * ServiceStart - Only used in Sever side,when client requests.
+ * hide client connectionn,JUST return client who have real data request
  * input	: None
  * output	: None
  * in/out	: None

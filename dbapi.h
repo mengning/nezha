@@ -17,6 +17,7 @@
  * Created by Mengning,2012/2/28
  * add some input/output args comments by Mengning,2012/2/29
  * Modify for Nezha project,by Mengning,2012/11/27
+ * Support Memory Database(no file) Operations,by Mengning,2012/12/18
  *
  */
 
@@ -42,6 +43,9 @@ typedef struct Value{
     char    *str;   /* Used for Value Content */
 }tValue;
 
+/**********************************************/
+/* Database(have a file) Operations
+/**********************************************/
 /*
  * Create an Database
  * input	: filename
@@ -91,6 +95,58 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue);
  * return	: SUCCESS(0)/FAILURE(-1)
  */
 int DBDelKeyValue(tDatabase db,tKey key);
+
+/**********************************************/
+/* Memory Database(no file) Operations
+/**********************************************/
+/*
+ * Create an Memory Database
+ * input	: None
+ * output	: None
+ * in/out	: None
+ * return	: if SUCCESS return (tDatabase *)Database handler
+ *          : if FAILURE exit(-1)
+ */
+tDatabase  MDBCreate();
+	
+/*
+ * Delete the Database
+ * input	: tDatabase db
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/exit(-1)
+ */
+int MDBDelete(tDatabase mdb);
+
+
+/*
+ * Set key/value
+ * input	: tKey key,tValue value - one key/value
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */	
+int MDBSetKeyValue(tDatabase mdb,tKey key,tValue value);
+
+/*
+ * get key/value
+ * input	: tKey key
+ * output	: None
+ * in/out	: tValue *pvalue MUST BE initialized,it means pvalue->str is malloced,
+            : and pvalue->len is the length of pvalue->str 
+            : if return SUCCESS(0),value will stored in pvalue(str,len).
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */
+int MDBGetKeyValue(tDatabase mdb,tKey key,tValue *pvalue);
+
+/*
+ * delete key/value
+ * input	: tKey key
+ * output	: None
+ * in/out	: None
+ * return	: SUCCESS(0)/FAILURE(-1)
+ */
+int MDBDelKeyValue(tDatabase mdb,tKey key);
 
 #ifdef __cplusplus
 }

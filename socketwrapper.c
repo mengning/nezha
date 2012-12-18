@@ -8,14 +8,15 @@
 /*  MODULE NAME           :  socketwraper                           */
 /*  LANGUAGE              :  C                                      */
 /*  TARGET ENVIRONMENT    :  Linux                                  */
-/*  DATE OF FIRST RELEASE :  2012/12/18                             */
+/*  DATE OF FIRST RELEASE :  2012/12/13                             */
 /*  DESCRIPTION           :  the interface to Linux system(socket)  */
 /********************************************************************/
 
 /*
  * Revision log:
  *
- * Created by Mengning,2012/12/18
+ * Created by Mengning,2012/12/13
+ * Support epoll,by Mengning,2012/12/18
  *
  */
 #include"socketwrapper.h"
@@ -23,8 +24,11 @@
 #include<stdlib.h> 
 #include<arpa/inet.h> /* internet socket */
 #include<string.h>
+#include<sys/epoll.h>
+#include<fcntl.h>
 
-int sockfd = -1; 
+int sockfd = -1;
+int epollfd = -1; 
 
 /* private macro */
 #define PrepareSocket(addr,port)                        \
@@ -54,7 +58,7 @@ int sockfd = -1;
             close(sockfd);                              \
             exit(-1);                                   \
         }                                               \
-        listen(sockfd,MAX_CONNECT_QUEUE); 
+        listen(sockfd,MAX_LISTEN_QUEUE); 
 
 #define InitClient()                                    \
         int ret = connect(sockfd,                       \
@@ -78,10 +82,30 @@ int sockfd = -1;
  */
 int InitializeNetService(char * addr,short int port)
 {
+    struct epoll_event event;
     PrepareSocket(addr,port);
+    epollfd = epoll_create(MAX_CONNECT_FD);
+    int opts;
+    opts = fcntl(sockfd,F_GETFL);
+    if(opts < 0)
+    {
+        fprintf(stderr,"fcntl(sock,GETFL) Error,%s:%d\n", __FILE__,__LINE__);
+        exit(1);
+    }
+    /* set non blocking */
+    opts = opts|O_NONBLOCK;
+    if(fcntl(sockfd,F_SETFL,opts)<0)
+    {
+        fprintf(stderr,"fcntl(sock,SETFL,opts) Error,%s:%d\n", __FILE__,__LINE__);
+        exit(1);
+    }
+    event.data.fd = sockfd;
+    event.events = EPOLLIN;
+    epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&event);
     InitServer();
-    return 0;
+    return 0;    
 }
+
 int ShutdownNetService()
 {
     if(sockfd == -1)
@@ -89,7 +113,12 @@ int ShutdownNetService()
         return -1;
     }
     close(sockfd);
-    return 0;  
+    if(epollfd == -1)
+    {
+        return -1;
+    }
+    close(epollfd);
+    return 0;       
 }
 /*
  * OpenRemoteService - Only used in Client side,it connects Server.
@@ -124,7 +153,8 @@ int CloseRemoteService(tServiceHandler h)
     return 0;     
 }
 /*
- * ServiceStart - Only used in Sever side,when client connects it return.
+ * ServiceStart - Only used in Sever side,when client requests.
+ * hide client connectionn,JUST return client who have real data request
  * input	: None
  * output	: None
  * in/out	: None
@@ -133,14 +163,28 @@ int CloseRemoteService(tServiceHandler h)
  */
 tServiceHandler ServiceStart()
 {
-    struct sockaddr_in clientaddr;
-    socklen_t addr_len = sizeof(struct sockaddr);
-    int newfd = accept( sockfd,(struct sockaddr *)&clientaddr,&addr_len);
-    if(newfd == -1) 
+    while(1)
     {
-        fprintf(stderr,"Accept Error,%s:%d\n", __FILE__,__LINE__);
-    }
-    return (tServiceHandler)newfd;
+        struct epoll_event event;
+        int fdnum = epoll_wait(epollfd,&event,1,-1);
+        if(event.data.fd == sockfd)
+        {
+            struct sockaddr_in clientaddr;
+            socklen_t addr_len = sizeof(struct sockaddr);
+            int newfd = accept( sockfd,(struct sockaddr *)&clientaddr,&addr_len);
+            if(newfd == -1) 
+            {
+                fprintf(stderr,"Accept Error,%s:%d\n", __FILE__,__LINE__);
+            }
+            event.data.fd = newfd;
+            event.events = EPOLLIN;
+            epoll_ctl(epollfd,EPOLL_CTL_ADD,newfd,&event);
+        }
+        else
+        {
+            return (tServiceHandler)event.data.fd;
+        }
+    }   
 }
 /*
  * ServiceStop - Only used in Sever side,when client connects it return.
