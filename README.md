@@ -8,7 +8,7 @@ Nezha is code name of this project.
 Software Architecture of Nezha
 
 Client Side
-
+{{{
                     *****************
                     *    cmdline    *
                     *****************
@@ -23,12 +23,12 @@ Client Side
                     *****************
                     * socketwrapper *
                     *****************
-                    
+}}}                    
                                                 
 ---------------------------------------------------------------------
 
 Server Side
-
+{{{
                     *****************
                     *    dbserver   *
                     *****************                    
@@ -46,3 +46,4 @@ Server Side
                                         *****************
                                         * Tokyo Cabinet *
                                         *****************                    
+}}}
