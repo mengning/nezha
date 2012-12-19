@@ -9,7 +9,7 @@
 /*  LANGUAGE              :  C                                      */
 /*  TARGET ENVIRONMENT    :  Linux                                  */
 /*  DATE OF FIRST RELEASE :  2012/12/18                             */
-/*  DESCRIPTION           :  Impement of Cliet Side Interface       */
+/*  DESCRIPTION           :  Impement of Client Side Interface      */
 /*                           to access database                     */
 /********************************************************************/
 
@@ -18,7 +18,7 @@
  *
  * Created by Mengning ,2012/5/30
  * Modify for Nezha project,by Mengning,2012/11/27
- * Modify for Cliet Side of Nezha project,by Mengning,2012/12/18
+ * Modify for Client Side of Nezha project,by Mengning,2012/12/18
  *
  */
 
@@ -33,6 +33,8 @@
 #define PORT                5001
 #define IP_ADDR             "127.0.0.1"
 #define MAX_BUF_LEN         1024
+
+#define debug               
 
 tServiceHandler h = -1;
 
@@ -115,6 +117,7 @@ int DBDelete(tDatabase db)
  */
 int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 {
+    debug("SET_CMD:%d -> %s\n",key,value.str);
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
     int ret = FormatData2(Buf,&BufSize,SET_CMD,(char*)&key,sizeof(tKey),value.str,value.len);
@@ -128,14 +131,14 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
     {
         fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
         return -1;            
-    }    
+    } 
     int cmd = -1;
     int DataNum = -1;
     char Data1[MAX_BUF_LEN] = "\0";
     int Data1Size = MAX_BUF_LEN;
     char Data2[MAX_BUF_LEN] = "\0";
     int Data2Size = MAX_BUF_LEN; 
-    ParseData(Buf,MAX_BUF_LEN,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
+    ParseData(Buf,BufSize,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
     if(cmd != SET_RSP || DataNum != 0)
     {
         fprintf(stderr,"Remote DBSetKeyValue Error,%s:%d\n", __FILE__,__LINE__);
@@ -149,7 +152,43 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
  */
 int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
-    
+    if(db == NULL || pvalue == NULL)
+    {
+        return -1;
+    }
+    char Buf[MAX_BUF_LEN] = "\0";
+    int BufSize = MAX_BUF_LEN;
+    int ret = FormatData1(Buf,&BufSize,GET_CMD,(char*)&key,sizeof(tKey));
+    if(ret == -1)
+    {
+        return -1;
+    }
+    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    BufSize = MAX_BUF_LEN;
+    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    {
+        fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
+        return -1;            
+    } 
+    int cmd = -1;
+    int DataNum = -1;
+    char Data1[MAX_BUF_LEN] = "\0";
+    int Data1Size = MAX_BUF_LEN;
+    char Data2[MAX_BUF_LEN] = "\0";
+    int Data2Size = MAX_BUF_LEN; 
+    ParseData(Buf,BufSize,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
+    if(cmd == ERROR_RSP && DataNum == 1)
+    {
+        return -1;
+    }    
+    if(cmd != GET_RSP || DataNum != 2 
+        || key != *(tKey*)Data1 || Data1Size != sizeof(tKey))
+    {
+        fprintf(stderr,"Remote DBGetKeyValue Error,%s:%d\n", __FILE__,__LINE__);
+        return -1;
+    }
+    pvalue->len = Data2Size;
+    pvalue->str = Data2;
     return 0;
 }
 
@@ -158,6 +197,35 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
  */
 int DBDelKeyValue(tDatabase db,tKey key)
 {
-
+    if(db == NULL)
+    {
+        return -1;
+    }
+    char Buf[MAX_BUF_LEN] = "\0";
+    int BufSize = MAX_BUF_LEN;
+    int ret = FormatData1(Buf,&BufSize,DELETE_CMD,(char*)&key,sizeof(tKey));
+    if(ret == -1)
+    {
+        return -1;
+    }
+    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    BufSize = MAX_BUF_LEN;
+    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    {
+        fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
+        return -1;            
+    } 
+    int cmd = -1;
+    int DataNum = -1;
+    char Data1[MAX_BUF_LEN] = "\0";
+    int Data1Size = MAX_BUF_LEN;
+    char Data2[MAX_BUF_LEN] = "\0";
+    int Data2Size = MAX_BUF_LEN; 
+    ParseData(Buf,BufSize,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
+    if(cmd == ERROR_RSP && DataNum == 1)
+    {
+        fprintf(stderr,"%s,%s:%d\n",Data1, __FILE__,__LINE__);
+        return -1;
+    }
     return 0;
 }

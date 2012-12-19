@@ -12,13 +12,17 @@ nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o
 # nezhaclient:database remote command line
 nezhaclient:socketwrapper.o protocol.o remotedbapi.o cmdline.o
 	gcc -o $@ $^
+	@printf '#=====================================\n'
+	@printf '# nezha:C/S version\n'
+	@printf '# execute ./nezhaserver & ./nezhaclient\n'
+	@printf '#=====================================\n'
 
 # nezha:local command line version	
 nezha:	dbapi.o cmdline.o
 	gcc -o $@ $^ -ltokyocabinet
 	@printf '#=====================================\n'
 	@printf '# nezha:local command line version\n'
-	@printf '# you can execute ./nezha\n'
+	@printf '# execute ./nezha\n'
 	@printf '#=====================================\n'
 
 test:   dbapi.o testdbapi.o \

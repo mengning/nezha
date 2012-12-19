@@ -24,6 +24,8 @@
 #include <stdlib.h> 
 #include <string.h>
 
+#define debug               
+
 typedef struct DataFormat
 {
     int cmd;
@@ -89,8 +91,9 @@ int FormatData2(char * pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,cha
     pData->num = htonl(2);
     pData->len = htonl(Data1Size);
     memcpy(pBuf + sizeof(tDataFormat),pData1,Data1Size);
-    int *pData2Len = (int *)pBuf + sizeof(tDataFormat) + Data1Size;
+    int *pData2Len = (int *)(pBuf + sizeof(tDataFormat) + Data1Size);
     *pData2Len = htonl(Data2Size);
+    debug("FormatData2:%d -> %s\n",Data2Size,pData2);
     memcpy(pBuf + sizeof(tDataFormat) + Data1Size + sizeof(int),pData2,Data2Size);
     *pBufSize = sizeof(tDataFormat) + Data1Size + sizeof(int) + Data2Size;     
     return 0;      
@@ -117,9 +120,12 @@ int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *
     tDataFormat * pData = (tDataFormat *)pBuf;
     *pcmd = ntohl(pData->cmd);
     *pDataNum = ntohl(pData->num);
+    int len1 = 0;
+    int len2 = 0;
     if(*pDataNum > 0)
     {
-        int len1 = ntohl(pData->len);
+        len1 = ntohl(pData->len);
+        debug("ParseData:%d    %d\n",pData->len,len1);
         if(BufSize < (sizeof(tDataFormat) + len1)
             || len1 > *pData1Size)
         {
@@ -131,17 +137,20 @@ int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *
     }
     if(*pDataNum > 1)
     {
-        int *pData2Len = (int*)pBuf + sizeof(tDataFormat) + *pData1Size;
+        int *pData2Len = (int*)(pBuf + sizeof(tDataFormat) + *pData1Size);
         int len2 = ntohl(*pData2Len);
+        debug("ParseData:%d    %d\n",*pData1Size,len1);
+        debug("ParseData:%d    %d\n",*pData2Len,len2);
         if( BufSize < (sizeof(tDataFormat) + *pData1Size + sizeof(int) + len2)
-            || len2 > *pData1Size)
+            || len2 > *pData2Size)
         {
             fprintf(stderr,"Unknown Format,%s:%d\n", __FILE__,__LINE__);
-            return -1;            
+            return -1;           
         }
         *pData2Size = len2;
-        //printf("ParseData:%s\n",pBuf + sizeof(tDataFormat) + *pData1Size + sizeof(int));
+        debug("ParseData:%s\n",pBuf + sizeof(tDataFormat) + *pData1Size + sizeof(int));
         memcpy(pData2,pBuf + sizeof(tDataFormat) + *pData1Size + sizeof(int),*pData2Size);
+        debug("ParseData:%s    %d\n",pData2,len2);
     }
     if(*pDataNum > 2)
     {

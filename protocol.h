@@ -59,7 +59,7 @@
  * FormatData - with 0-2 data
  * input	: cmd,data and data size
  * in/out	: pBuf - to store formated packet 
- * input	: BufSize - size of the memory pointed by pBuf
+ * in/out	: pBufSize - size of the memory pointed by pBuf,and output the size be used
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */

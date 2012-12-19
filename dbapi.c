@@ -99,16 +99,15 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
     int ret;
 
     ret = tchdbget3(db,&key,sizeof(tKey),pvalue->str,pvalue->len);
-    if(ret)
+    if(ret == -1)
     {
-        pvalue->str[ret] = '\0';
-        pvalue->len=ret;
-        return 0;
+        ecode = tchdbecode(db);
+        fprintf(stderr, "get error: %s\n", tchdberrmsg(ecode));   
+        return -1;        
     }	
-    ecode = tchdbecode(db);
-    fprintf(stderr, "get error: %s\n", tchdberrmsg(ecode));
-    
-    return -1;
+    pvalue->str[ret] = '\0';
+    pvalue->len=ret;
+    return 0;
 }
 
 /*
@@ -117,13 +116,11 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 int DBDelKeyValue(tDatabase db,tKey key)
 {
     int ecode;
-
     if(!tchdbout(db, &key, sizeof(tKey)))
     {
         ecode = tchdbecode(db);
         fprintf(stderr, "delete error: %s\n", tchdberrmsg(ecode));
         return -1;
     }
-
     return 0;
 }

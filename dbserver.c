@@ -32,6 +32,8 @@
 #define IP_ADDR             "127.0.0.1"
 #define MAX_BUF_LEN         1024
 
+#define debug               
+
 tDatabase  db = NULL;
 
 int HandleRequests(tServiceHandler h);
@@ -49,6 +51,14 @@ int main()
     }
     ShutdownNetService();
     return 0;
+}
+int ErrorResponse(tServiceHandler h,char * errorinfo)
+{
+    char Buf[MAX_BUF_LEN] = "\0";
+    int BufSize = MAX_BUF_LEN;
+    FormatData1(Buf,&BufSize,ERROR_RSP,errorinfo,strlen(errorinfo));
+    SendData(h,Buf,BufSize);
+    return 0;    
 }
 
 int HandleRequests(tServiceHandler h)
@@ -79,14 +89,12 @@ int HandleRequests(tServiceHandler h)
         int ret = ParseData(Buf,BufSize,&cmd,&DataNum,Data1,&Data1Size,Data2,&Data2Size);
         if(ret == -1)
         {
-            BufSize = MAX_BUF_LEN;
-            FormatData(Buf,&BufSize,ERROR_RSP);
-            SendData(h,Buf,BufSize);            
+            ErrorResponse(h,"Data Format Error!\n");
             continue;
         }
         if(cmd == OPEN_CMD && DataNum == 1)
         {
-            printf("OPEN_CMD\n");
+            debug("OPEN_CMD\n");
             db = DBCreate(Data1);
             BufSize = MAX_BUF_LEN;
             FormatData(Buf,&BufSize,OPEN_RSP);
@@ -94,7 +102,7 @@ int HandleRequests(tServiceHandler h)
         }
         else if(cmd == CLOSE_CMD && DataNum == 0)
         {
-            printf("CLOSE_CMD\n");
+            debug("CLOSE_CMD\n");
             DBDelete(db);
             BufSize = MAX_BUF_LEN;
             FormatData(Buf,&BufSize,CLOSE_RSP);
@@ -103,12 +111,30 @@ int HandleRequests(tServiceHandler h)
         }
         else if(cmd == GET_CMD && DataNum == 1)
         {
-            printf("GET_CMD\n");
-            
+            debug("GET_CMD\n");
+            if(Data1Size != sizeof(tKey))
+            {
+                fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
+                continue;            
+            }
+            tKey key = *(tKey*)Data1;
+            tValue value;
+            Data2Size = MAX_BUF_LEN;
+            value.len = Data2Size;
+            value.str = Data2;
+            ret = DBGetKeyValue(db,key,&value);
+            if(ret == FAILURE)
+            {
+                ErrorResponse(h,"The key NOT FOUND!\n");
+                continue;
+            }
+            BufSize = MAX_BUF_LEN;
+            FormatData2(Buf,&BufSize,GET_RSP,(char*)&key,sizeof(tKey),value.str,value.len);
+            SendData(h,Buf,BufSize);             
         }
         else if(cmd == SET_CMD && DataNum == 2)
         {
-            printf("SET_CMD\n");
+            debug("SET_CMD\n");
             if(Data1Size != sizeof(tKey))
             {
                 fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
@@ -118,6 +144,8 @@ int HandleRequests(tServiceHandler h)
             tValue value;
             value.len = Data2Size;
             value.str = Data2;
+            debug("SET_CMD:%d -> %s\n",*(tKey*)(Buf + 12),(char*)(Buf + 20));
+            debug("SET_CMD:%d -> %s\n",key,value.str);
             DBSetKeyValue(db,key,value);
             BufSize = MAX_BUF_LEN;
             FormatData(Buf,&BufSize,SET_RSP);
@@ -125,7 +153,22 @@ int HandleRequests(tServiceHandler h)
         }
         else if(cmd == DELETE_CMD && DataNum == 1)
         {
-            printf("DELETE_CMD\n");
+            debug("DELETE_CMD\n");
+            if(Data1Size != sizeof(tKey))
+            {
+                fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
+                continue;            
+            }
+            tKey key = *(tKey*)Data1;           
+            ret = DBDelKeyValue(db,key);
+            if(ret == FAILURE)
+            {
+                ErrorResponse(h,"The key NOT FOUND!\n");
+                continue;
+            }            
+            BufSize = MAX_BUF_LEN;
+            FormatData(Buf,&BufSize,DELETE_RSP);
+            SendData(h,Buf,BufSize);             
         }
         else
         {
