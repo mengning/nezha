@@ -27,6 +27,8 @@
 #include<sys/epoll.h>
 #include<fcntl.h>
 
+#define debug   
+
 int sockfd = -1;
 int epollfd = -1; 
 
@@ -70,7 +72,23 @@ int epollfd = -1;
                 __FILE__,__LINE__);                     \
             exit(-1);                                   \
         } 
-                                                                      
+int SetNonBlocking(int fd)
+{
+    int opts;
+    opts = fcntl(fd,F_GETFL);
+    if(opts < 0)
+    {
+        fprintf(stderr,"fcntl(sock,GETFL) Error,%s:%d\n", __FILE__,__LINE__);
+        exit(1);
+    }
+    /* set non blocking */
+    opts = opts|O_NONBLOCK;
+    if(fcntl(fd,F_SETFL,opts) < 0)
+    {
+        fprintf(stderr,"fcntl(sock,SETFL,opts) Error,%s:%d\n", __FILE__,__LINE__);
+        exit(1);
+    }    
+}                                                                     
 /*
  * InitServer
  * input	: addr - server ip address
@@ -85,22 +103,9 @@ int InitializeNetService(char * addr,short int port)
     struct epoll_event event;
     PrepareSocket(addr,port);
     epollfd = epoll_create(MAX_CONNECT_FD);
-    int opts;
-    opts = fcntl(sockfd,F_GETFL);
-    if(opts < 0)
-    {
-        fprintf(stderr,"fcntl(sock,GETFL) Error,%s:%d\n", __FILE__,__LINE__);
-        exit(1);
-    }
-    /* set non blocking */
-    opts = opts|O_NONBLOCK;
-    if(fcntl(sockfd,F_SETFL,opts)<0)
-    {
-        fprintf(stderr,"fcntl(sock,SETFL,opts) Error,%s:%d\n", __FILE__,__LINE__);
-        exit(1);
-    }
+    SetNonBlocking(sockfd);
     event.data.fd = sockfd;
-    event.events = EPOLLIN;
+    event.events = EPOLLET | EPOLLIN | EPOLLRDHUP;
     epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&event);
     InitServer();
     return 0;    
@@ -176,9 +181,15 @@ tServiceHandler ServiceStart()
             {
                 fprintf(stderr,"Accept Error,%s:%d\n", __FILE__,__LINE__);
             }
+            SetNonBlocking(newfd);
             event.data.fd = newfd;
             event.events = EPOLLIN;
             epoll_ctl(epollfd,EPOLL_CTL_ADD,newfd,&event);
+        }
+        /* close by peer */
+        else if((event.events & EPOLLIN) && (event.events & EPOLLRDHUP))
+        {
+            close(event.data.fd);
         }
         else
         {

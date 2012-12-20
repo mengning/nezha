@@ -6,7 +6,8 @@ TARGETS = testdbapi  testswserver testswclient testprotocol \
 all:	nezha nezhaserver nezhaclient
 
 # nezhaserver:database service
-nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o
+nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o \
+            event.o msgq.o
 	gcc -o $@ $^ -ltokyocabinet
 
 # nezhaclient:database remote command line

@@ -1,16 +1,16 @@
 
 /********************************************************************/
-/* Copyright (C) MC2Lab-USTC, 2012                  */
-/*                                  */
-/*  FILE NAME         :  dbserver.c                 */
-/*  PRINCIPAL AUTHOR      :  Mengning                   */
-/*  SUBSYSTEM NAME    :  network                */
-/*  MODULE NAME       :  dbserver                   */
-/*  LANGUAGE          :  C                      */
-/*  TARGET ENVIRONMENT    :  Linux                  */
-/*  DATE OF FIRST RELEASE :  2012/12/14                 */
-/*  DESCRIPTION       :  Impement of Socket Server Engine       */
-/*               to handle clients requests.        */
+/* Copyright (C) MC2Lab-USTC, 2012                                  */
+/*                                                                  */
+/*  FILE NAME               :  dbserver.c                           */
+/*  PRINCIPAL AUTHOR        :  Mengning                             */
+/*  SUBSYSTEM NAME          :  network                              */
+/*  MODULE NAME             :  dbserver                             */
+/*  LANGUAGE                :  C                                    */
+/*  TARGET ENVIRONMENT      :  Linux                                */
+/*  DATE OF FIRST RELEASE   :  2012/12/14                           */
+/*  DESCRIPTION             :  Impement of Socket Server Engine     */
+/*                             to handle clients requests.          */
 /********************************************************************/
 
 /*
@@ -23,19 +23,36 @@
 #include "dbapi.h"
 #include "socketwrapper.h"
 #include "protocol.h"
+#include "event.h"
+#include "msgq.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <time.h>
 
-#define PORT        5001
+#define PORT            5001
 #define IP_ADDR         "127.0.0.1"
 #define MAX_BUF_LEN     1024
 
-#define THREAD_NUM      0
+#define debug   printf
 
-#define debug                    
+#define MAX_TASK_NUM      1
+pthread_t thread_id[MAX_TASK_NUM];
+tEvent event[MAX_TASK_NUM];
+tQueue taskq[MAX_TASK_NUM];
+typedef struct TaskNode
+{
+    tQueueNode next;
+    tServiceHandler req;
+    char Buf[MAX_BUF_LEN];
+    int BufSize;
+}tTaskNode;  
+
+#define RANDOM(x)                           \
+                  srand((unsigned)time(0)); \
+                  i = random()%x;
 
 /*
  * store cliend fd and database mapping table
@@ -52,31 +69,65 @@ tDatabase  CDManager = NULL;
         tValue v;v.str = (char*)&mdb;v.len = sizeof(tDatabase); \
         MDBGetKeyValue(CDManager,c,&v);      
 
-int HandleRequests(tServiceHandler h);
-int HandleOneRequest(tServiceHandler h);
+int HandleRequests(int tasknum);
+int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
 
 int main()
-{
-    pthread_t thread_id;
+{    
+    int i;
+    if(MAX_TASK_NUM > 0)
+    {
+        for(i = 0;i < MAX_TASK_NUM;i++)
+        {
+            EventInit(&event[i],0);
+            QueueCreate(&taskq[i]);
+            int temp = i;
+            if(pthread_create(&thread_id[i],NULL,(void*)HandleRequests,(void*)temp) != 0)
+            {
+                fprintf(stderr,"pthread_create Error,%s:%d\n",__FILE__,__LINE__);
+                exit(-1);
+            }            
+        }           
+    }    
     InitCDManager();
-    /* Server Engine for Client's Connections */
+    /* Server Engine for Clients' Requests */
     tServiceHandler request = -1;
     InitializeNetService(IP_ADDR,PORT);
     while(1)
     {
-    /* return the client fd who have real data request */
-    request = ServiceStart();
-#if 0    
-    if(pthread_create(&thread_id,NULL, (void*)HandleRequests,(void*)request) != 0)
-    {
-        fprintf(stderr,"pthread_create Error,%s:%d\n",__FILE__,__LINE__);
-        ServiceStop(h);        
-    }
-#endif
-    HandleOneRequest(request);   
+        /* return the client fd who have real data request */
+        request = ServiceStart();
+        tTaskNode *pnode = malloc(sizeof(tTaskNode));
+        pnode->BufSize = MAX_BUF_LEN;
+        if(RecvData(request,pnode->Buf,&(pnode->BufSize)) == 0)
+        {
+            fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
+            ServiceStop(request);
+            continue;        
+        }        
+        if(MAX_TASK_NUM > 0)
+        {            
+            pnode->req = request;
+            RANDOM(MAX_TASK_NUM);//i = random(MAX_TASK_NUM)
+            debug("fd %d send to task %d\n",request,i);
+            QueueInMsg(&taskq[i],(tQueueNode*)pnode);
+            SentEvent(&event[i]);
+        }
+        else
+        {
+            HandleOneRequest(request,pnode->Buf,pnode->BufSize);
+        }  
     }
     ShutdownNetService();
     ShutCDManager();
+    if(MAX_TASK_NUM > 0)
+    {        
+        for(i = 0;i < MAX_TASK_NUM;i++)
+        {
+            EventShut(&event[i]);
+            QueueDelete(&taskq[i]);
+        }    
+    }    
     return 0;
 }
 int ErrorResponse(tServiceHandler h,char * errorinfo)
@@ -87,18 +138,28 @@ int ErrorResponse(tServiceHandler h,char * errorinfo)
     SendData(h,Buf,BufSize);
     return 0;    
 }
-int HandleRequests(tServiceHandler h)
+int HandleRequests(int tasknum)
 {
+    debug("task %d starts\n",tasknum);
     /* Handle Requests */
+    tServiceHandler h = -1;
+    int i = tasknum;
     while(1)
     {
-        HandleOneRequest(h);
+        WaitEvent(&event[i]);
+        debug("task %d get a event\n",i);
+        tTaskNode *pnode = NULL;
+        QueueOutMsg(&taskq[i],(tQueueNode**)&pnode);
+        h = pnode->req;              
+        if(HandleOneRequest(h,pnode->Buf,pnode->BufSize) == -1)
+        {
+            continue;
+        }
+        free(pnode);
     }
 }
-int HandleOneRequest(tServiceHandler h)
+int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
 {
-    char Buf[MAX_BUF_LEN] = "\0";
-    int BufSize = MAX_BUF_LEN;
     int cmd = -1;
     int DataNum = -1;
     char Data1[MAX_BUF_LEN] = "\0";
@@ -107,14 +168,6 @@ int HandleOneRequest(tServiceHandler h)
     int Data2Size = MAX_BUF_LEN;  
       
     /* Handle One Request */
-
-    BufSize = MAX_BUF_LEN;
-    if(RecvData(h,Buf,&BufSize) == 0)
-    {
-        fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
-        ServiceStop(h);
-        return -1;        
-    }
     if(BufSize == 0)
     {
         return -1; 
@@ -219,6 +272,8 @@ int HandleOneRequest(tServiceHandler h)
     }
     else
     {
-        printf("Unknow Request!\n");
-    }                      
+        ErrorResponse(h,"Unknow Request!\n");
+        return -1;
+    } 
+    return 0;                     
 }
