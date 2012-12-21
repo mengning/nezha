@@ -1,10 +1,10 @@
 /********************************************************************/
 /* Copyright (C) MC2Lab-USTC, 2012                                  */
 /*                                                                  */
-/*  FILE NAME             :  main.c                                 */
+/*  FILE NAME             :  cmdline.c                              */
 /*  PRINCIPAL AUTHOR      :  Mengning                               */
 /*  SUBSYSTEM NAME        :  DB                                     */
-/*  MODULE NAME           :  main                                   */
+/*  MODULE NAME           :  cmdline                                */
 /*  LANGUAGE              :  C                                      */
 /*  TARGET ENVIRONMENT    :  Linux                                  */
 /*  DATE OF FIRST RELEASE :  2012/11/27                             */
@@ -19,6 +19,7 @@
  */
 
 #include "dbapi.h"
+#include "cmdline.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,16 +36,22 @@ tDatabase  db = NULL;
 int GetCmd(char * cmdbuf,int size);
 int ExecCmd(char * cmdbuf);
 
-int main(int argc, char **argv)
+int cmdline()
 {
     /*start cmdline here*/
+    printf("Nezha Database System Admin Console Starts\n"); 
     while(1)
     {
         printf("%s::%s>>",prompt,dbname);
         GetCmd(cmdbuf,MAX_STR_LEN);
-        ExecCmd(cmdbuf);
+        if(ExecCmd(cmdbuf) == 1)
+        {
+            /* exit admin console */
+            printf("Exit from Nezha Database System Admin Console\n");
+            return 0;   
+        }
     }
-    return;
+    return 0;
 }
 
 int GetCmd(char * cmdbuf,int size)
@@ -109,7 +116,7 @@ int ExecCmd(char * cmdbuf)
         {
             DBDelete(db);
         }
-        exit(0);     
+        return 1;     
     }
     else if(CheckCmd(cmdbuf,"set ([0-9]+) (.*)") == 0)
     {

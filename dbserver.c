@@ -1,4 +1,3 @@
-
 /********************************************************************/
 /* Copyright (C) MC2Lab-USTC, 2012                                  */
 /*                                                                  */
@@ -25,6 +24,7 @@
 #include "protocol.h"
 #include "event.h"
 #include "msgq.h"
+#include "cmdline.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +36,7 @@
 #define IP_ADDR         "127.0.0.1"
 #define MAX_BUF_LEN     1024
 
-#define debug   printf
+#define debug   
 
 #define MAX_TASK_NUM      1
 pthread_t thread_id[MAX_TASK_NUM];
@@ -73,7 +73,8 @@ int HandleRequests(int tasknum);
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
 
 int main()
-{    
+{ 
+    printf("Nezha Database System Server Engine Starts\n");    
     int i;
     if(MAX_TASK_NUM > 0)
     {
@@ -88,7 +89,14 @@ int main()
                 exit(-1);
             }            
         }           
-    }    
+    } 
+    /* start command line console */
+    pthread_t cmdline_id;
+    if(pthread_create(&cmdline_id,NULL,(void*)cmdline,(void*)0) != 0)
+    {
+        fprintf(stderr,"cmdline pthread_create Error,%s:%d\n",__FILE__,__LINE__);
+        exit(-1);
+    }       
     InitCDManager();
     /* Server Engine for Clients' Requests */
     tServiceHandler request = -1;
@@ -101,7 +109,7 @@ int main()
         pnode->BufSize = MAX_BUF_LEN;
         if(RecvData(request,pnode->Buf,&(pnode->BufSize)) == 0)
         {
-            fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
+            /* close by peer */
             ServiceStop(request);
             continue;        
         }        
@@ -116,6 +124,7 @@ int main()
         else
         {
             HandleOneRequest(request,pnode->Buf,pnode->BufSize);
+            free(pnode);
         }  
     }
     ShutdownNetService();
@@ -130,6 +139,7 @@ int main()
     }    
     return 0;
 }
+
 int ErrorResponse(tServiceHandler h,char * errorinfo)
 {
     char Buf[MAX_BUF_LEN] = "\0";
@@ -138,6 +148,7 @@ int ErrorResponse(tServiceHandler h,char * errorinfo)
     SendData(h,Buf,BufSize);
     return 0;    
 }
+
 int HandleRequests(int tasknum)
 {
     debug("task %d starts\n",tasknum);

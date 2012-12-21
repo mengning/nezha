@@ -105,7 +105,7 @@ int InitializeNetService(char * addr,short int port)
     epollfd = epoll_create(MAX_CONNECT_FD);
     SetNonBlocking(sockfd);
     event.data.fd = sockfd;
-    event.events = EPOLLET | EPOLLIN | EPOLLRDHUP;
+    event.events = EPOLLIN | EPOLLRDHUP;
     epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&event);
     InitServer();
     return 0;    

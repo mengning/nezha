@@ -7,11 +7,11 @@ all:	nezha nezhaserver nezhaclient
 
 # nezhaserver:database service
 nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o \
-            event.o msgq.o
+            event.o msgq.o cmdline.o
 	gcc -o $@ $^ -ltokyocabinet
 
 # nezhaclient:database remote command line
-nezhaclient:socketwrapper.o protocol.o remotedbapi.o cmdline.o
+nezhaclient:socketwrapper.o protocol.o remotedbapi.o cmdline.o client.o
 	gcc -o $@ $^
 	@printf '#=====================================\n'
 	@printf '# nezha:C/S version\n'
@@ -19,7 +19,7 @@ nezhaclient:socketwrapper.o protocol.o remotedbapi.o cmdline.o
 	@printf '#=====================================\n'
 
 # nezha:local command line version	
-nezha:	dbapi.o cmdline.o
+nezha:	dbapi.o cmdline.o client.o
 	gcc -o $@ $^ -ltokyocabinet
 	@printf '#=====================================\n'
 	@printf '# nezha:local command line version\n'
