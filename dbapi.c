@@ -64,6 +64,8 @@ tDatabase  DBCreate(const char * filename)
         }
     }
     hdb = tchdbnew();
+    /* set mutual exclusion control of a hash database object for threading. */
+    tchdbsetmutex(hdb);     
     /* open the database */
     if(!tchdbopen(hdb, filename, HDBOWRITER | HDBOCREAT))
     {
