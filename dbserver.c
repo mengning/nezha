@@ -38,7 +38,7 @@
 
 #define debug   
 
-#define MAX_TASK_NUM      1
+#define MAX_TASK_NUM      10
 pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
