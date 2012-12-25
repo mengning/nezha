@@ -42,6 +42,7 @@
 pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
+pthread_mutex_t dbmutex;
 typedef struct TaskNode
 {
     tQueueNode next;
@@ -90,6 +91,7 @@ int main()
             }            
         }           
     } 
+    pthread_mutex_init(&dbmutex, NULL);
     /* start command line console */
     pthread_t cmdline_id;
     if(pthread_create(&cmdline_id,NULL,(void*)cmdline,(void*)0) != 0)
@@ -195,7 +197,9 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
     {
         debug("OPEN_CMD\n");
         tDatabase  db = NULL;
+        pthread_mutex_lock(&dbmutex);
         db = DBCreate(Data1);
+        pthread_mutex_unlock(&dbmutex);
         AttachCD(h,db);
         BufSize = MAX_BUF_LEN;
         FormatData(Buf,&BufSize,OPEN_RSP);
@@ -206,7 +210,9 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
         debug("CLOSE_CMD\n");
         tDatabase  db = NULL;
         GetMdb(h,db);
+        pthread_mutex_lock(&dbmutex);
         DBDelete(db);
+        pthread_mutex_unlock(&dbmutex);
         BufSize = MAX_BUF_LEN;
         FormatData(Buf,&BufSize,CLOSE_RSP);
         SendData(h,Buf,BufSize);
