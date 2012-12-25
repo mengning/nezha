@@ -64,6 +64,8 @@ tDatabase  DBCreate(const char * filename)
         {
             hdb = opendb->hdb;
             opendb->counter ++ ;
+            if (opendb->counter == 2)
+                sleep(10);
             tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)opendb,vsize);
             free(opendb);
             return (tDatabase)hdb;
@@ -110,6 +112,7 @@ int DBDelete(tDatabase db)
         if(opendb != NULL && opendb->hdb == hdb)
         {
             opendb->counter -- ;
+            printf("now %s's counter is %d\n", filename, opendb->counter);
             if(opendb->counter <= 0)
             {
                 /* remove this record */
