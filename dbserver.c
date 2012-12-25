@@ -197,9 +197,9 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
     {
         debug("OPEN_CMD\n");
         tDatabase  db = NULL;
-        pthread_mutex_lock(&dbmutex);
+        //pthread_mutex_lock(&dbmutex);
         db = DBCreate(Data1);
-        pthread_mutex_unlock(&dbmutex);
+        //pthread_mutex_unlock(&dbmutex);
         AttachCD(h,db);
         BufSize = MAX_BUF_LEN;
         FormatData(Buf,&BufSize,OPEN_RSP);
