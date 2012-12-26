@@ -36,9 +36,9 @@
 #define IP_ADDR         "127.0.0.1"
 #define MAX_BUF_LEN     1024
 
-#define debug   
+#define debug           printf
 
-#define MAX_TASK_NUM      1
+#define MAX_TASK_NUM      3
 pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
