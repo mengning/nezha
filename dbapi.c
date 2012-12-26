@@ -125,6 +125,7 @@ int DBDelete(tDatabase db)
             {
                 /* remove this record */
                 tcmdbout(allOpenedDB,(void*)filename,ksize);
+                pthread_mutex_unlock(&dbmutex);
                 free(filename);
                 free(opendb);
                 break;
