@@ -35,12 +35,11 @@
 #define MAX_BUF_LEN         1024
 #define debug               
 
-tServiceHandler h = -1;
 
 /*
  * Create an Database
  */
-tDatabase  RemoteDBCreate(const char * filename,char * addr,int port)
+int  RemoteDBCreate(const char * filename,char * addr,int port)
 {
     if(filename == NULL)
     {
@@ -48,18 +47,18 @@ tDatabase  RemoteDBCreate(const char * filename,char * addr,int port)
         filename = "nezha.hdb";
     }        
     /* connect server */
-    h = OpenRemoteService(addr,port);
-    if(h == -1)
+    tServiceHandler dbhandler = OpenRemoteService(addr,port);
+    if(dbhandler == -1)
     {
-        exit(-1);   
+        return -1;   
     }
     /* open database file */
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
     FormatData1(Buf,&BufSize,OPEN_CMD,(char*)filename,strlen(filename));
-    SendData(h,Buf,BufSize);
+    SendData(dbhandler,Buf,BufSize);
     BufSize = MAX_BUF_LEN;
-    RecvData(h,Buf,&BufSize);
+    RecvData(dbhandler,Buf,&BufSize);
     int cmd = -1;
     int DataNum = -1;
     char Data1[MAX_BUF_LEN] = "\0";
@@ -70,22 +69,23 @@ tDatabase  RemoteDBCreate(const char * filename,char * addr,int port)
     if(cmd != OPEN_RSP || DataNum != 0)
     {
         fprintf(stderr,"Remote DBCreate Error,%s:%d\n", __FILE__,__LINE__);
+        return -1; 
     }        
-    return (tDatabase)&h;
+    return dbhandler;
 }
 
 /*
  * Delete the Database
  */
-int RemoteDBDelete(tDatabase db)
+int RemoteDBDelete(int db)
 {
     /* close database file */
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
     FormatData(Buf,&BufSize,CLOSE_CMD);
-    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    SendData(db,Buf,BufSize);
     BufSize = MAX_BUF_LEN;
-    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    if(RecvData(db,Buf,&BufSize) == 0)
     {
         fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
         return -1;            
@@ -103,7 +103,7 @@ int RemoteDBDelete(tDatabase db)
         return -1;
     }    
     /* close connection */
-    if(CloseRemoteService(*(tServiceHandler*)db) == -1)
+    if(CloseRemoteService(db) == -1)
     {
         return -1; 
     }
@@ -114,7 +114,7 @@ int RemoteDBDelete(tDatabase db)
 /*
  * Set key/value
  */
-int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value)
+int RemoteDBSetKeyValue(int db,tKey key,tValue value)
 {
     debug("SET_CMD:%d -> %s\n",key,value.str);
     char Buf[MAX_BUF_LEN] = "\0";
@@ -124,9 +124,9 @@ int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value)
     {
         return -1;
     }
-    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    SendData(db,Buf,BufSize);
     BufSize = MAX_BUF_LEN;
-    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    if(RecvData(db,Buf,&BufSize) == 0)
     {
         fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
         return -1;            
@@ -149,7 +149,7 @@ int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value)
 /*
  * get key/value
  */
-int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
+int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
 {
     if(db == NULL || pvalue == NULL)
     {
@@ -162,9 +162,9 @@ int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
     {
         return -1;
     }
-    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    SendData(db,Buf,BufSize);
     BufSize = MAX_BUF_LEN;
-    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    if(RecvData(db,Buf,&BufSize) == 0)
     {
         fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
         return -1;            
@@ -194,7 +194,7 @@ int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 /*
  * delete key/value
  */
-int RemoteDBDelKeyValue(tDatabase db,tKey key)
+int RemoteDBDelKeyValue(int db,tKey key)
 {
     if(db == NULL)
     {
@@ -207,9 +207,9 @@ int RemoteDBDelKeyValue(tDatabase db,tKey key)
     {
         return -1;
     }
-    SendData(*(tServiceHandler*)db,Buf,BufSize);
+    SendData(db,Buf,BufSize);
     BufSize = MAX_BUF_LEN;
-    if(RecvData(*(tServiceHandler*)db,Buf,&BufSize) == 0)
+    if(RecvData(db,Buf,&BufSize) == 0)
     {
         fprintf(stderr,"Connection Error,%s:%d\n",__FILE__,__LINE__);
         return -1;            

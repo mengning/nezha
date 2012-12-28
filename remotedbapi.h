@@ -41,20 +41,20 @@ extern "C" {
  * input	: filename,addr,port
  * output	: None
  * in/out	: None
- * return	: if SUCCESS return (tDatabase *)Database handler
- *          : if FAILURE exit(-1)
+ * return	: if SUCCESS return (int)Database handler
+ *          : if FAILURE return (-1)
  */
-tDatabase  RemoteDBCreate(const char * filename,char * addr,int port);
+int  RemoteDBCreate(const char * filename,char * addr,int port);
 	
 
 /*
  * Delete the Database
- * input	: tDatabase db
+ * input	: int db
  * output	: None
  * in/out	: None
  * return	: SUCCESS(0)/exit(-1)
  */
-int RemoteDBDelete(tDatabase db);
+int RemoteDBDelete(int db);
 
 
 /*
@@ -64,7 +64,7 @@ int RemoteDBDelete(tDatabase db);
  * in/out	: None
  * return	: SUCCESS(0)/FAILURE(-1)
  */	
-int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value);
+int RemoteDBSetKeyValue(int db,tKey key,tValue value);
 
 /*
  * get key/value
@@ -75,7 +75,7 @@ int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value);
             : if return SUCCESS(0),value will stored in pvalue(str,len).
  * return	: SUCCESS(0)/FAILURE(-1)
  */
-int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue);
+int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue);
 
 /*
  * delete key/value
@@ -84,7 +84,7 @@ int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue);
  * in/out	: None
  * return	: SUCCESS(0)/FAILURE(-1)
  */
-int RemoteDBDelKeyValue(tDatabase db,tKey key);
+int RemoteDBDelKeyValue(int db,tKey key);
 
 
 

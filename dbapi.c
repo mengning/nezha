@@ -83,7 +83,7 @@ tDatabase  DBCreate(const char * filename)
     /* set mutual exclusion control of a hash database object for threading. */
     tchdbsetmutex(hdb);     
     /* open the database */
-    if(!tchdbopen(hdb, filename, HDBOWRITER | HDBOCREAT))
+    if(!tchdbopen(hdb, filename, HDBOWRITER | HDBOCREAT | HDBONOLCK))
     {
        	ecode = tchdbecode(hdb);
        	fprintf(stderr, "open error: %s\n", tchdberrmsg(ecode));

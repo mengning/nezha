@@ -36,16 +36,39 @@
 #define PORT                5001
 #define IP_ADDR             "127.0.0.1"
 #define MAX_BUF_LEN         1024
-
-#define debug               
-
+#define ADDR_STR_LEN        128
+#define MAX_NODE_NUM        3
+#define debug               printf
+              
+typedef struct CloudNode
+{
+    char addr[ADDR_STR_LEN];
+    int  port;
+    int  db;
+}tCloudNode;
+/* Initialize servers info */
+tCloudNode nodes[MAX_NODE_NUM] = 
+{
+    {IP_ADDR,5001,-1},
+    {IP_ADDR,5002,-1},
+    {IP_ADDR,5003,-1}    
+};
 
 /*
  * Create an Database
  */
 tDatabase  DBCreate(const char * filename)
-{       
-    return RemoteDBCreate(filename,IP_ADDR,PORT);
+{
+    int i;
+    for(i = 0; i < MAX_NODE_NUM; i++)
+    {
+        nodes[i].db = RemoteDBCreate(filename,nodes[i].addr,nodes[i].port);
+        if(nodes[i].db == -1)
+        {
+            return NULL;
+        }
+    }      
+    return (tDatabase)nodes;
 }
 
 /*
@@ -53,7 +76,12 @@ tDatabase  DBCreate(const char * filename)
  */
 int DBDelete(tDatabase db)
 {
-    RemoteDBDelete(db);
+    tCloudNode *pnodes = (tCloudNode*)db;
+    int i;
+    for(i = 0; i < MAX_NODE_NUM; i++)
+    {    
+        RemoteDBDelete(pnodes[i].db);
+    }
     return 0;
 }
 
@@ -63,8 +91,10 @@ int DBDelete(tDatabase db)
  */
 int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 {
-    RemoteDBSetKeyValue(db,key,value);
-    return 0;
+    tCloudNode *pnodes = (tCloudNode*)db;
+    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */
+    debug("key=%d,nodeindex=%d\n",key,nodeindex);
+    return RemoteDBSetKeyValue(pnodes[nodeindex].db,key,value);
 }
 
 /*
@@ -72,8 +102,10 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
  */
 int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
-    RemoteDBGetKeyValue(db,key,pvalue);
-    return 0;
+    tCloudNode *pnodes = (tCloudNode*)db;
+    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */ 
+    debug("key=%d,nodeindex=%d\n",key,nodeindex);  
+    return RemoteDBGetKeyValue(pnodes[nodeindex].db,key,pvalue);
 }
 
 /*
@@ -81,6 +113,8 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
  */
 int DBDelKeyValue(tDatabase db,tKey key)
 {
-    RemoteDBDelKeyValue(db,key);
-    return 0;
+    tCloudNode *pnodes = (tCloudNode*)db;
+    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */ 
+    debug("key=%d,nodeindex=%d\n",key,nodeindex);   
+    return RemoteDBDelKeyValue(pnodes[nodeindex].db,key);
 }

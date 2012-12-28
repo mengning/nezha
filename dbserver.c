@@ -72,9 +72,21 @@ tDatabase  CDManager = NULL;
 int HandleRequests(int tasknum);
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
 
-int main()
-{ 
-    printf("Nezha Database System Server Engine Starts\n");    
+int main(int argc, char *argv[])
+{
+    printf("Nezha Database System Server Engine Starts\n");
+    char * addr;
+    int    port;
+    if (argc != 3) 
+    {
+        addr = IP_ADDR;
+        port = PORT;
+    }
+    else
+    {
+        addr = argv[1];
+        port = atoi(argv[2]);        
+    }
     int i;
     if(MAX_TASK_NUM > 0)
     {
@@ -100,7 +112,8 @@ int main()
     InitCDManager();
     /* Server Engine for Clients' Requests */
     tServiceHandler request = -1;
-    InitializeNetService(IP_ADDR,PORT);
+    printf("InitializeNetService at %s:%d\n",addr,port);
+    InitializeNetService(addr,port);
     while(1)
     {
         /* return the client fd who have real data request */
