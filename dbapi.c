@@ -28,8 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <pthread.h>
 
 TCMDB * allOpenedDB = NULL;
+pthread_mutex_t dbmutex;
 
 typedef struct OpenedDB
 {
@@ -55,19 +57,27 @@ tDatabase  DBCreate(const char * filename)
     if(allOpenedDB == NULL)
     {
         allOpenedDB = tcmdbnew();
+        pthread_mutex_init(&dbmutex, NULL);
     }
     else
     {
         int vsize = -1;
+        pthread_mutex_lock(&dbmutex);
         tOpenedDB *opendb = (tOpenedDB*)tcmdbget(allOpenedDB,(void*)filename,strlen(filename),&vsize);
         if(opendb != NULL)
         {
             hdb = opendb->hdb;
             opendb->counter ++ ;
+            //if (opendb->counter == 2)
+            //    sleep(10);
+            //printf("%s's counter before put: %d\n", filename, opendb->counter);
             tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)opendb,vsize);
+            //printf("%s's counter after put: %d\n", filename, opendb->counter);
+            pthread_mutex_unlock(&dbmutex);
             free(opendb);
             return (tDatabase)hdb;
         }
+        pthread_mutex_unlock(&dbmutex);
     }
     hdb = tchdbnew();
     /* set mutual exclusion control of a hash database object for threading. */
@@ -106,6 +116,7 @@ int DBDelete(tDatabase db)
             break;
         }
         int vsize = -1;
+        pthread_mutex_lock(&dbmutex);
         tOpenedDB *opendb = (tOpenedDB*)tcmdbget(allOpenedDB,(void*)filename,ksize,&vsize);
         if(opendb != NULL && opendb->hdb == hdb)
         {
@@ -114,16 +125,19 @@ int DBDelete(tDatabase db)
             {
                 /* remove this record */
                 tcmdbout(allOpenedDB,(void*)filename,ksize);
+                pthread_mutex_unlock(&dbmutex);
                 free(filename);
                 free(opendb);
                 break;
             }
             /* update this record counter -- */
             tcmdbput(allOpenedDB,(void*)filename,ksize,(void*)opendb,vsize);
+            pthread_mutex_unlock(&dbmutex);
             free(filename);
             free(opendb);            
             return 0;
         } 
+        pthread_mutex_unlock(&dbmutex);
         free(filename);
         free(opendb);
     }
