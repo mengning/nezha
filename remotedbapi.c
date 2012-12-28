@@ -19,10 +19,11 @@
  * Created by Mengning ,2012/5/30
  * Modify for Nezha project,by Mengning,2012/11/27
  * Modify for Client Side of Nezha project,by Mengning,2012/12/18
- *
+ * change api names for inserting cloud module,
+ * so that provide the same api for higher layer,by Mengning,2012/12/28
  */
 
-#include "dbapi.h"
+#include "remotedbapi.h"
 #include "socketwrapper.h"
 #include "protocol.h"
 #include <stdio.h>
@@ -30,10 +31,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#define PORT                5001
-#define IP_ADDR             "127.0.0.1"
-#define MAX_BUF_LEN         1024
 
+#define MAX_BUF_LEN         1024
 #define debug               
 
 tServiceHandler h = -1;
@@ -41,7 +40,7 @@ tServiceHandler h = -1;
 /*
  * Create an Database
  */
-tDatabase  DBCreate(const char * filename)
+tDatabase  RemoteDBCreate(const char * filename,char * addr,int port)
 {
     if(filename == NULL)
     {
@@ -49,7 +48,7 @@ tDatabase  DBCreate(const char * filename)
         filename = "nezha.hdb";
     }        
     /* connect server */
-    h = OpenRemoteService(IP_ADDR,PORT);
+    h = OpenRemoteService(addr,port);
     if(h == -1)
     {
         exit(-1);   
@@ -78,7 +77,7 @@ tDatabase  DBCreate(const char * filename)
 /*
  * Delete the Database
  */
-int DBDelete(tDatabase db)
+int RemoteDBDelete(tDatabase db)
 {
     /* close database file */
     char Buf[MAX_BUF_LEN] = "\0";
@@ -115,7 +114,7 @@ int DBDelete(tDatabase db)
 /*
  * Set key/value
  */
-int DBSetKeyValue(tDatabase db,tKey key,tValue value)
+int RemoteDBSetKeyValue(tDatabase db,tKey key,tValue value)
 {
     debug("SET_CMD:%d -> %s\n",key,value.str);
     char Buf[MAX_BUF_LEN] = "\0";
@@ -150,7 +149,7 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 /*
  * get key/value
  */
-int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
+int RemoteDBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
     if(db == NULL || pvalue == NULL)
     {
@@ -195,7 +194,7 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 /*
  * delete key/value
  */
-int DBDelKeyValue(tDatabase db,tKey key)
+int RemoteDBDelKeyValue(tDatabase db,tKey key)
 {
     if(db == NULL)
     {
