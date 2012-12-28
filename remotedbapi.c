@@ -151,7 +151,7 @@ int RemoteDBSetKeyValue(int db,tKey key,tValue value)
  */
 int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
 {
-    if(db == NULL || pvalue == NULL)
+    if(db == -1 || pvalue == NULL)
     {
         return -1;
     }
@@ -196,7 +196,7 @@ int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
  */
 int RemoteDBDelKeyValue(int db,tKey key)
 {
-    if(db == NULL)
+    if(db == -1)
     {
         return -1;
     }
