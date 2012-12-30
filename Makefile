@@ -1,6 +1,6 @@
 # Makefile for Nezha project
 
-TARGETS = testdbapi  testswserver testswclient testprotocol \
+TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
           nezha nezhaserver nezhaclient
 
 all:	nezha nezhaserver nezhaclient
@@ -28,7 +28,10 @@ nezha:	dbapi.o cmdline.o client.o
 
 test:   dbapi.o testdbapi.o \
 		socketwrapper.o testsocketwrapperserver.o testsocketwrapperclient.o \
-		protocol.o testprotocol.o
+		protocol.o testprotocol.o \
+		linktable.o testlinktable.o
+	gcc -o testlinktable linktable.o testlinktable.o
+	./testlinktable
 	gcc -o testdbapi dbapi.o testdbapi.o -ltokyocabinet
 	./testdbapi
 	gcc -o testswserver socketwrapper.o testsocketwrapperserver.o
@@ -39,6 +42,7 @@ test:   dbapi.o testdbapi.o \
 	killall testswserver
 	gcc -o testprotocol protocol.o testprotocol.o
 	./testprotocol
+
 
 .c.o:
 	gcc -c $<
