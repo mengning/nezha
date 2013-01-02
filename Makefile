@@ -11,7 +11,7 @@ nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o \
 	gcc -o $@ $^ -ltokyocabinet
 
 # nezhaclient:database remote command line
-nezhaclient:socketwrapper.o protocol.o remotedbapi.o clouddbapi.o cmdline.o client.o
+nezhaclient:socketwrapper.o protocol.o remotedbapi.o linktable.o clouddbapi.o cmdline.o client.o
 	gcc -o $@ $^
 	@printf '#=====================================\n'
 	@printf '# nezha:C/S version\n'
