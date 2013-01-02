@@ -6,7 +6,7 @@ TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
 all:	nezha nezhaserver nezhaclient
 
 # nezhaserver:database service
-nezhaserver:dbapi.o socketwrapper.o protocol.o dbserver.o \
+nezhaserver:dbapi.o socketwrapper.o protocol.o engine.o server.o \
             event.o msgq.o cmdline.o
 	gcc -o $@ $^ -ltokyocabinet
 

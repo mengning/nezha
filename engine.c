@@ -1,10 +1,10 @@
 /********************************************************************/
 /* Copyright (C) MC2Lab-USTC, 2012                                  */
 /*                                                                  */
-/*  FILE NAME               :  dbserver.c                           */
+/*  FILE NAME               :  engine.c                             */
 /*  PRINCIPAL AUTHOR        :  Mengning                             */
-/*  SUBSYSTEM NAME          :  network                              */
-/*  MODULE NAME             :  dbserver                             */
+/*  SUBSYSTEM NAME          :  main                                 */
+/*  MODULE NAME             :  engine                               */
 /*  LANGUAGE                :  C                                    */
 /*  TARGET ENVIRONMENT      :  Linux                                */
 /*  DATE OF FIRST RELEASE   :  2012/12/14                           */
@@ -32,8 +32,6 @@
 #include <pthread.h>
 #include <time.h>
 
-#define PORT            5001
-#define IP_ADDR         "127.0.0.1"
 #define MAX_BUF_LEN     1024
 
 #define debug           printf
@@ -72,21 +70,8 @@ tDatabase  CDManager = NULL;
 int HandleRequests(int tasknum);
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
 
-int main(int argc, char *argv[])
+int ServiceEngine(char * addr, int    port)
 {
-    printf("Nezha Database System Server Engine Starts\n");
-    char * addr;
-    int    port;
-    if (argc != 3) 
-    {
-        addr = IP_ADDR;
-        port = PORT;
-    }
-    else
-    {
-        addr = argv[1];
-        port = atoi(argv[2]);        
-    }
     int i;
     if(MAX_TASK_NUM > 0)
     {
