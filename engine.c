@@ -24,7 +24,7 @@
 #include "protocol.h"
 #include "event.h"
 #include "msgq.h"
-#include "cmdline.h"
+#include "nodes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,10 +36,13 @@
 
 #define debug           printf
 
-#define MAX_TASK_NUM      3
+#define MAX_TASK_NUM      0
 pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
+
+tLinkTable * gCloudNodes = NULL;
+
 typedef struct TaskNode
 {
     tQueueNode next;
@@ -50,7 +53,7 @@ typedef struct TaskNode
 
 #define RANDOM(x)                           \
                   srand((unsigned)time(0)); \
-                  i = random()%x;
+                  i = random()%(x==0?1:x);
 
 /*
  * store cliend fd and database mapping table
@@ -68,7 +71,9 @@ tDatabase  CDManager = NULL;
         MDBGetKeyValue(CDManager,c,&v);      
 
 int HandleRequests(int tasknum);
+int Handler(tServiceHandler h,char *Buf,int BufSize);
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
+int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize);
 
 int ServiceEngine(char * addr, int    port)
 {
@@ -86,13 +91,6 @@ int ServiceEngine(char * addr, int    port)
                 exit(-1);
             }            
         }           
-    } 
-    /* start command line console */
-    pthread_t cmdline_id;
-    if(pthread_create(&cmdline_id,NULL,(void*)cmdline,(void*)0) != 0)
-    {
-        fprintf(stderr,"cmdline pthread_create Error,%s:%d\n",__FILE__,__LINE__);
-        exit(-1);
     }       
     InitCDManager();
     /* Server Engine for Clients' Requests */
@@ -121,7 +119,7 @@ int ServiceEngine(char * addr, int    port)
         }
         else
         {
-            HandleOneRequest(request,pnode->Buf,pnode->BufSize);
+            Handler(request,pnode->Buf,pnode->BufSize);
             free(pnode);
         }  
     }
@@ -159,13 +157,36 @@ int HandleRequests(int tasknum)
         debug("task %d get a event\n",i);
         tTaskNode *pnode = NULL;
         QueueOutMsg(&taskq[i],(tQueueNode**)&pnode);
-        h = pnode->req;              
-        if(HandleOneRequest(h,pnode->Buf,pnode->BufSize) == -1)
+        h = pnode->req; 
+        if(Handler(h,pnode->Buf,pnode->BufSize) == -1)
         {
+            free(pnode);
             continue;
         }
         free(pnode);
     }
+}
+int Handler(tServiceHandler h,char *Buf,int BufSize)
+{
+        int cmd = -1;
+        int DataNum = -1;
+        ParseCmd(Buf,BufSize,&cmd,&DataNum);
+        if(cmd >= 0 && cmd > CTRL_CMD)
+        {
+            if(HandleControlRequest(h,Buf,BufSize) == -1)
+            {
+                return -1;
+            }            
+        }
+        else
+        {            
+            if(HandleOneRequest(h,Buf,BufSize) == -1)
+            {
+                return -1;
+            }
+        }
+        return 0;
+            
 }
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
 {
@@ -285,4 +306,59 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
         return -1;
     } 
     return 0;                     
+}
+int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize)
+{
+    int cmd = -1;
+    int DataNum = -1;  
+      
+    /* Handle One Request */
+    if(BufSize == 0)
+    {
+        return -1; 
+    }
+    int ret;
+    char ppData[MAX_DATA_NUM][MAX_DATA_LEN] = {0};
+    ret = ParseDataN(Buf,BufSize,&cmd,&DataNum,ppData);
+    if(DataNum > 1)
+    {
+        ret = -1;
+    }
+    if(ret == -1)
+    {
+        ErrorResponse(h,"Data Format Error!\n");
+        return -1; 
+    }
+    if(cmd == CTRL_REG_CMD && (DataNum == 1 || DataNum == 0))
+    {
+        debug("CTRL_REG_CMD\n");
+        if(DataNum == 1)
+        {
+            AddCloudNodes(gCloudNodes,ppData,DataNum);       
+        }
+        int NodeNum = MAX_DATA_NUM;
+        CloudNodesInfo(gCloudNodes,ppData,&NodeNum);       
+        BufSize = MAX_BUF_LEN;
+        FormatDataN(Buf,&BufSize,CTRL_REG_RSP,ppData,NodeNum);
+        SendData(h,Buf,BufSize);         
+    }
+    else
+    {
+        ErrorResponse(h,"Unknow Request!\n");
+        return -1;
+    } 
+    return 0;    
+}
+/* create cluster in master */
+int  CreateCluster(char * addr,int port)
+{
+    gCloudNodes = InitCloudNodes(addr,port);
+    return 0;
+}
+
+/* loading cluster nodes in nodes */
+int  LoadingClusterNodes(char * addr,int port)
+{
+    gCloudNodes = RegisterAndLoadCloudNodes(addr,port);
+    return 0;
 }

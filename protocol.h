@@ -55,6 +55,14 @@
 #define SET_RSP         SET_CMD     /* if success,With zero data */
 #define DELETE_RSP      DELETE_CMD  /* if success,With zero data */
 
+/* Control operation commands */
+#define CTRL_CMD          100          /* Control cmd starts here */
+/* Registe Node info */
+#define CTRL_REG_CMD      101          /* with zero or one data(IP:PORT) */
+#define CTRL_REG_RSP      CTRL_REG_CMD /* with N data(IP:PORT) */
+
+#define MAX_DATA_NUM        128
+#define MAX_DATA_LEN        128
 /*
  * FormatData - with 0-2 data
  * input	: cmd,data and data size
@@ -66,6 +74,8 @@
 int FormatData(char *pBuf,int *pBufSize,int cmd);
 int FormatData1(char *pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size);
 int FormatData2(char *pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,char* pData2,int Data2Size);
+int FormatDataN(char *pBuf,int *pBufSize,int cmd,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int DataNum);
+
 /*
  * ParseData - with 0-2 data
  * input	: pBuf - point to recved packet 
@@ -75,7 +85,10 @@ int FormatData2(char *pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,char
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
+int ParseCmd(char * pBuf,int BufSize,int *pcmd,int *pDataNum);
 int ParseData(char *pBuf,int BufSize,int *pcmd,int *pDataNum,char *pData1,int *pData1Size,char* pData2,int *pData2Size);
+int ParseDataN(char *pBuf,int BufSize,int *pcmd,int *pDataNum,char ppData[MAX_DATA_NUM][MAX_DATA_LEN]);
+
         
 #endif /* _PROTOCOL_H_ */
 

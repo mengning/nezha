@@ -7,11 +7,11 @@ all:	nezha nezhaserver nezhaclient
 
 # nezhaserver:database service
 nezhaserver:dbapi.o socketwrapper.o protocol.o engine.o server.o \
-            event.o msgq.o cmdline.o
+            event.o msgq.o cmdline.o nodes.o linktable.o
 	gcc -o $@ $^ -ltokyocabinet
 
 # nezhaclient:database remote command line
-nezhaclient:socketwrapper.o protocol.o remotedbapi.o linktable.o clouddbapi.o cmdline.o client.o
+nezhaclient:socketwrapper.o protocol.o remotedbapi.o linktable.o nodes.o clouddbapi.o cmdline.o client.o
 	gcc -o $@ $^
 	@printf '#=====================================\n'
 	@printf '# nezha:C/S version\n'
@@ -30,6 +30,8 @@ test:   dbapi.o testdbapi.o \
 		socketwrapper.o testsocketwrapperserver.o testsocketwrapperclient.o \
 		protocol.o testprotocol.o \
 		linktable.o testlinktable.o
+	gcc -o testprotocol protocol.o testprotocol.o
+	./testprotocol
 	gcc -o testlinktable linktable.o testlinktable.o
 	./testlinktable
 	gcc -o testdbapi dbapi.o testdbapi.o -ltokyocabinet
@@ -40,8 +42,7 @@ test:   dbapi.o testdbapi.o \
 	sleep 1
 	./testswclient
 	killall testswserver
-	gcc -o testprotocol protocol.o testprotocol.o
-	./testprotocol
+
 
 
 .c.o:

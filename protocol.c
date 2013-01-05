@@ -98,6 +98,36 @@ int FormatData2(char * pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,cha
     *pBufSize = sizeof(tDataFormat) + Data1Size + sizeof(int) + Data2Size;     
     return 0;      
 }
+int FormatDataN(char *pBuf,int *pBufSize,int cmd,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int DataNum)
+{
+    int i = 0;
+    int DataSize = 0;
+    for(i=0;i<DataNum;i++)
+    {
+        DataSize += strlen(ppData[i]);
+    }
+    if((*pBufSize < sizeof(tDataFormat) + DataSize + sizeof(int)*DataNum)
+        || pBuf == NULL
+        || ppData == NULL)
+    {
+        fprintf(stderr,"FormatDataN Error,%s:%d\n", __FILE__,__LINE__);
+        return -1;
+    }
+    tDataFormat *pData = (tDataFormat *)pBuf;
+    pData->cmd = htonl(cmd);
+    pData->num = htonl(DataNum);
+    pData->len = htonl(0);
+    char * p = pBuf + sizeof(tDataFormat) - sizeof(int); /* point to pData->len */
+    for(i=0;i<DataNum;i++)
+    {
+        *(int*)p = strlen(ppData[i]);
+        p += sizeof(int);
+        debug("FormatDataN:%d,%s\n",strlen(ppData[i]),ppData[i]);
+        memcpy(p,ppData[i],strlen(ppData[i]));
+        p += strlen(ppData[i]);
+    }     
+    return 0;     
+}
 /*
  * ParseData - with 0-2 data
  * input	: pBuf - point to recved packet 
@@ -107,6 +137,19 @@ int FormatData2(char * pBuf,int *pBufSize,int cmd,char* pData1,int Data1Size,cha
  * return	: if SUCCESS return 0
  *          : if FAILURE return (-1)
  */
+int ParseCmd(char * pBuf,int BufSize,int *pcmd,int *pDataNum)
+{
+    if(BufSize < sizeof(tDataFormat)
+        || pBuf == NULL || pcmd == NULL || pDataNum == NULL)
+    {
+        fprintf(stderr,"ParseCmd Error,%s:%d\n", __FILE__,__LINE__);
+        return -1;
+    }
+    tDataFormat * pData = (tDataFormat *)pBuf;
+    *pcmd = ntohl(pData->cmd);
+    *pDataNum = ntohl(pData->num);
+    return 0;  
+} 
 int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *pData1Size,char* pData2,int *pData2Size)
 {
     if(BufSize < sizeof(tDataFormat)
@@ -160,6 +203,43 @@ int ParseData(char * pBuf,int BufSize,int *pcmd,int *pDataNum,char* pData1,int *
     return 0;  
 }
         
-
+int ParseDataN(char *pBuf,int BufSize,int *pcmd,int *pDataNum,char ppData[MAX_DATA_NUM][MAX_DATA_LEN])
+{
+    if(BufSize < sizeof(tDataFormat)
+        || pBuf == NULL || pcmd == NULL || pDataNum == NULL
+        || ppData == NULL)
+    {
+        fprintf(stderr,"ParseDataN Error,%s:%d\n", __FILE__,__LINE__);
+        return -1;
+    }
+    tDataFormat * pData = (tDataFormat *)pBuf;
+    *pcmd = ntohl(pData->cmd);
+    *pDataNum = ntohl(pData->num);
+    debug("ParseDataN CMD:%d,DataNum:%d\n",*pcmd,*pDataNum);
+    if(*pDataNum > MAX_DATA_NUM)
+    {
+        fprintf(stderr,"ParseDataN Error:*pDataNum > MAX_DATA_NUM,%s:%d\n", __FILE__,__LINE__);
+        return -1;        
+    }
+    int DataSize = 0;
+    char * p = pBuf + sizeof(tDataFormat) - sizeof(int);
+    int i = 0;
+    for(i=0;i<(*pDataNum);i++)
+    {
+        DataSize = *(int*)p;
+        debug("ParseDataN:%d,%s\n",DataSize,p + sizeof(int));
+        if(DataSize > MAX_DATA_LEN)
+        {
+            fprintf(stderr,"ParseDataN Error:DataSize > MAX_DATA_LEN,%s:%d\n", __FILE__,__LINE__);
+            return -1;        
+        }        
+        p += sizeof(int);
+        memcpy(ppData[i],p,DataSize);
+        ppData[i][DataSize] = '\0';
+        debug("ParseDataN:%d,%s\n",DataSize,ppData[i]);
+        p += DataSize;
+    }
+    return 0;     
+}
 
 

@@ -63,7 +63,32 @@ int main()
         printf("%s\n",Data1);
         printf("%s\n",Data2);
         printf("Test Two Data Result: Pass\n");
-    }    
+    }
+    char ppData[10][MAX_DATA_LEN] = 
+    {
+        {"127.0.0.1:5001"},
+        {"127.0.0.2:5002"},
+        {"127.0.0.3:5003"},
+        {"127.0.0.4:5004"},
+        {"127.0.0.5:5005"},
+        {"127.0.0.6:5006"},
+        {"127.0.0.7:5007"},
+        {"127.0.0.8:5008"},
+        {"127.0.0.9:5009"},
+        {"127.0.0.10:5010"}
+    };
+    char ppData1[10][MAX_DATA_LEN] = {0};
+    BufSize = MAX_BUF_LEN;
+    FormatDataN(Buf,&BufSize,CTRL_REG_RSP,ppData,10);
+    DataNum = 0;
+    ParseDataN(Buf,MAX_BUF_LEN,&cmd,&DataNum,ppData1);
+    printf("CMD:%d,DataNum:%d\n",cmd,DataNum);
+    int i = 0;
+    for(i=0;i<10;i++)
+    {
+        printf("%s\n",ppData1[i]);
+    }
+
     return 0;   
 }
 

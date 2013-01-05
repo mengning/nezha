@@ -68,11 +68,7 @@ tDatabase  DBCreate(const char * filename)
         {
             hdb = opendb->hdb;
             opendb->counter ++ ;
-            //if (opendb->counter == 2)
-            //    sleep(10);
-            //printf("%s's counter before put: %d\n", filename, opendb->counter);
             tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)opendb,vsize);
-            //printf("%s's counter after put: %d\n", filename, opendb->counter);
             pthread_mutex_unlock(&dbmutex);
             free(opendb);
             return (tDatabase)hdb;

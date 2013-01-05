@@ -26,61 +26,28 @@
 
 #include "dbapi.h"
 #include "remotedbapi.h"
-#include "linktable.h"
+#include "nodes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
-#define PORT                5001
-#define IP_ADDR             "127.0.0.1\0"
-#define MAX_BUF_LEN         1024
-#define ADDR_STR_LEN        128
+
 #define MAX_NODE_NUM        nodes->SumOfNode
 #define debug               printf
               
-typedef struct CloudNode
-{
-    tLinkTableNode * pNext;
-    char addr[ADDR_STR_LEN];
-    int  port;
-    int  fd;
-}tCloudNode;
 
-
-/* Load cloud nodes info */
-static tLinkTable *  LoadCloudNodes(char * addr,int port)
-{
-    int i;
-    tLinkTable * nodes = CreateLinkTable();
-    tCloudNode* pNode = (tCloudNode*)malloc(sizeof(tCloudNode));
-    memcpy(pNode->addr,IP_ADDR,strlen(IP_ADDR)+1);
-    pNode->port = 5001;
-    pNode->fd = -1;
-    AddLinkTableNode(nodes,(tLinkTableNode *)pNode);
-    pNode = (tCloudNode*)malloc(sizeof(tCloudNode));
-    memcpy(pNode->addr,IP_ADDR,strlen(IP_ADDR)+1);
-    pNode->port = 5002;
-    pNode->fd = -1;
-    AddLinkTableNode(nodes,(tLinkTableNode *)pNode); 
-    pNode = (tCloudNode*)malloc(sizeof(tCloudNode));
-    memcpy(pNode->addr,IP_ADDR,strlen(IP_ADDR)+1);
-    pNode->port = 5003;
-    pNode->fd = -1;
-    AddLinkTableNode(nodes,(tLinkTableNode *)pNode);
-    return nodes;    
-}
 
 /*
  * Create an Database
  */
 tDatabase  DBCreate(const char * filename)
 {
-    tLinkTable * nodes = LoadCloudNodes(IP_ADDR,PORT);
+    tLinkTable * nodes = RegisterAndLoadCloudNodes(NULL,0);
     tCloudNode * pNode = (tCloudNode*)GetLinkTableHead(nodes);
     while(pNode != NULL)
     {
-        debug("%s:%d\n",pNode->addr,pNode->port);
+        debug("DBCreate %s:%d\n",pNode->addr,pNode->port);
         pNode->fd = RemoteDBCreate(filename,pNode->addr,pNode->port);
         if(pNode->fd == -1)
         {
