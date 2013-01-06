@@ -22,6 +22,7 @@
 #ifndef _LINK_TABLE_H_
 #define _LINK_TABLE_H_
 
+#include <pthread.h>
 
 /*
  * LinkTable Node Type
@@ -39,6 +40,7 @@ typedef struct LinkTable
 	tLinkTableNode *pHead;
 	tLinkTableNode *pTail;
 	int			SumOfNode;
+	pthread_mutex_t mutex;
 	
 }tLinkTable;
 

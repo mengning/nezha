@@ -40,6 +40,7 @@ tLinkTable * CreateLinkTable()
 	pLinkTable->pHead = NULL;
 	pLinkTable->pTail = NULL;
 	pLinkTable->SumOfNode = 0;
+	pthread_mutex_init(&(pLinkTable->mutex), NULL);
 	return pLinkTable;
 }
 /*
@@ -54,13 +55,16 @@ int DeleteLinkTable(tLinkTable *pLinkTable)
 	while(pLinkTable->pHead != NULL)
 	{
 		tLinkTableNode * p = pLinkTable->pHead;
+		pthread_mutex_lock(&(pLinkTable->mutex));
 		pLinkTable->pHead = pLinkTable->pHead->pNext;
 		pLinkTable->SumOfNode -= 1 ;
+		pthread_mutex_unlock(&(pLinkTable->mutex));
 		free(p);
 	}
 	pLinkTable->pHead = NULL;
 	pLinkTable->pTail = NULL;
 	pLinkTable->SumOfNode = 0;
+	pthread_mutex_destroy(&(pLinkTable->mutex));
 	free(pLinkTable);
 	return SUCCESS;		
 }
@@ -74,6 +78,7 @@ int AddLinkTableNode(tLinkTable *pLinkTable,tLinkTableNode * pNode)
 		return FAILURE;
     }
 	pNode->pNext = NULL;
+	pthread_mutex_lock(&(pLinkTable->mutex));
 	if(pLinkTable->pHead == NULL)
 	{
 		pLinkTable->pHead = pNode;
@@ -88,6 +93,7 @@ int AddLinkTableNode(tLinkTable *pLinkTable,tLinkTableNode * pNode)
 		pLinkTable->pTail = pNode;
 	}
 	pLinkTable->SumOfNode += 1 ;
+	pthread_mutex_unlock(&(pLinkTable->mutex));
 	return SUCCESS;		
 }
 /*
@@ -99,6 +105,7 @@ int DelLinkTableNode(tLinkTable *pLinkTable,tLinkTableNode * pNode)
 	{
 		return FAILURE;
     }
+    pthread_mutex_lock(&(pLinkTable->mutex));
     if(pLinkTable->pHead == pNode)
     {
         pLinkTable->pHead = pLinkTable->pHead->pNext;
@@ -107,6 +114,7 @@ int DelLinkTableNode(tLinkTable *pLinkTable,tLinkTableNode * pNode)
     	{
     		pLinkTable->pTail = NULL;	
     	}
+    	pthread_mutex_unlock(&(pLinkTable->mutex));
     	return SUCCESS;
     }
     tLinkTableNode * pTempNode = pLinkTable->pHead;
@@ -120,10 +128,12 @@ int DelLinkTableNode(tLinkTable *pLinkTable,tLinkTableNode * pNode)
     		{
     			pLinkTable->pTail = NULL;	
     		}
+    		pthread_mutex_unlock(&(pLinkTable->mutex));
     		return SUCCESS;				    
 		}
 		pTempNode = pTempNode->pNext;
 	}
+	pthread_mutex_unlock(&(pLinkTable->mutex));
 	return FAILURE;		
 }
 
