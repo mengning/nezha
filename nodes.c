@@ -16,6 +16,7 @@
  * Revision log:
  *
  * Created by Mengning,2013/1/4
+ * Consistent-Hash support ,by Mengning,2013/1/9
  *
  */
 #include "nodes.h"
@@ -25,29 +26,109 @@
 #include <stdlib.h> 
 #include <string.h>
 
-#define MAX_BUF_LEN     1024
 
-#define debug               
+#define MAX_BUF_LEN         1024
 
+#define debug  printf
+             
 /* Init cloud nodes info */
-tLinkTable *  InitCloudNodes(char * addr,int port)
+tCluster *  InitCluster()
 {
-
-    tLinkTable * nodes = CreateLinkTable();
-    tCloudNode* pNode = (tCloudNode*)malloc(sizeof(tCloudNode));
-    if(addr != NULL)
+    tCluster * cluster = (tCluster *)malloc(sizeof(tCluster));
+    cluster->SumOfNodes = 0;
+    int i; 
+    for(i=0;i<MAX_NODE_NUM;i++)
     {
-        memcpy(pNode->addr,addr,strlen(addr));
-        pNode->addr[strlen(addr)+1] = '\0';
-        pNode->port = port;
-        pNode->fd = -1;
-        AddLinkTableNode(nodes,(tLinkTableNode *)pNode);
+        cluster->nodes[i] = NULL; 
+    }    
+    return cluster;    
+}
+/* Destroy Cluster */
+int DestroyCluster(tCluster * cluster)
+{
+    int i = 0;
+    tNode* pNode = cluster->nodes[i];
+    while(1)
+    {
+        i = pNode->hash;
+        free(pNode);
+        pNode = cluster->nodes[i];
+        if(pNode->hash >= MAX_NODE_NUM)
+        {
+            break;
+        }
     }
-    return nodes;
+    free(cluster);
+    return 0;
+}
+int GetHashValue(tCluster * cluster,int SumOfNodes,int * start)
+{
+    int i = 0;
+    int max=0,prev=0,next=0;    
+    while(i < MAX_NODE_NUM)
+    {
+        tNode* pNode = cluster->nodes[i];
+        if(max < pNode->hash - i)
+        {
+            max = pNode->hash - i;
+            prev = i;
+            next = pNode->hash;
+        }
+        i = pNode->hash;
+    }
+    *start = prev;
+    return (next - prev)%2 == 0 ? (next - prev)/2 : (next - prev - 1)/2;
+}
+/* Get cloud nodes info */
+tNode *  GetNode(tCluster * cluster,int hash)
+{
+    return cluster->nodes[hash];
+}
+/* Add cloud nodes info */
+int  AddNode(tCluster * cluster,char * addr,int port)
+{
+    debug("AddNode %s:%d\n",addr,port);
+    int i = 0;    
+    if(cluster->SumOfNodes >= MAX_NODE_NUM)
+    {
+        return -1;
+    }
+    tNode* pNode = (tNode*)malloc(sizeof(tNode));
+    memcpy(pNode->addr,addr,strlen(addr));
+    pNode->addr[strlen(addr)] = '\0';
+    pNode->port = port;
+    pNode->fd = -1;
+    if(cluster->SumOfNodes == 0)
+    {
+        pNode->hash = MAX_NODE_NUM;
+        debug("AddNode start:%d     hash:%d\n",i,pNode->hash);
+        for(i=0;i<MAX_NODE_NUM;i++)
+        {
+            cluster->nodes[i] = pNode; 
+        }        
+    }
+    else
+    {
+        int start;
+        pNode->hash = GetHashValue(cluster,cluster->SumOfNodes,&start);
+        debug("AddNode start:%d     hash:%d\n",start,pNode->hash);
+        for(i=start;i<pNode->hash;i++)
+        {
+            cluster->nodes[i] = pNode; 
+        } 
+    }
+    cluster->SumOfNodes ++;
+    return 0; 
+}
+/* Register cloud nodes info */
+int  RemoveNode(tCluster * cluster,int hash,char * addr,int port,int fd)
+{
+    /* add here in future */
+    return -1;
 }
 
 /* Register And Load cloud nodes info */
-tLinkTable *  RegisterAndLoadCloudNodes(char * addr,int port)
+tCluster *  RegisterAndLoadClusterNodes(char * addr,int port)
 {
     int i;
     int DataNum = -1;
@@ -77,17 +158,17 @@ tLinkTable *  RegisterAndLoadCloudNodes(char * addr,int port)
         fprintf(stderr,"AddCloudNodes Error,%s:%d\n",__FILE__,__LINE__);
         return NULL;         
     }
-    tLinkTable * nodes = CreateLinkTable();
-    AddCloudNodes(nodes,ppData,DataNum);    
+    tCluster * cluster = InitCluster();
+    AddClusterNodes(cluster,ppData,DataNum);    
     CloseRemoteService(h);
-    return nodes;    
+    return cluster;    
 }
-/* add recved buf(nodes info) to linktable */
-int AddCloudNodes(tLinkTable * nodes,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int DataNum)
+/* add recved buf(nodes info) to cluster */
+int AddClusterNodes(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int DataNum)
 {
-    if(nodes == NULL || ppData == NULL)
+    if(cluster == NULL || ppData == NULL)
     {
-        fprintf(stderr,"AddCloudNodes Error,%s:%d\n",__FILE__,__LINE__);
+        fprintf(stderr,"AddClusterNodes Error,%s:%d\n",__FILE__,__LINE__);
         return -1;         
     }
     if(DataNum == 0)
@@ -97,35 +178,31 @@ int AddCloudNodes(tLinkTable * nodes,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int
     int i;
     for(i=0;i<DataNum;i++)
     {
-        tCloudNode* pNode = (tCloudNode*)malloc(sizeof(tCloudNode));
         char addr[MAX_DATA_LEN];
         int port;
         sscanf(ppData[i],"%s%d",addr,&port);
         debug("pasrer %s:%d\n",addr,port);
-        memcpy(pNode->addr,addr,strlen(ppData[i]));
-        pNode->addr[strlen(ppData[i])+1] = '\0';
-        pNode->port = port;
-        pNode->fd = -1;
-        AddLinkTableNode(nodes,(tLinkTableNode *)pNode);
+        AddNode(cluster,addr,port);
     }
     return 0;
 }
-/* Linktable(Nodes info) to ppData array */
-int CloudNodesInfo(tLinkTable * nodes,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int *NodeNum)
+/* Cluseter(Nodes info) to ppData array */
+int ClusterNodesInfo(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int *NodeNum)
 {
-    if(*NodeNum < nodes->SumOfNode)
+    if(*NodeNum < cluster->SumOfNodes)
     {
         fprintf(stderr,"CloudNodesInfo Error,%s:%d\n",__FILE__,__LINE__);
         return -1;
     }
-    *NodeNum = nodes->SumOfNode;
-    int i = 0;
-    tCloudNode * pNode = (tCloudNode*)GetLinkTableHead(nodes);
-    while(pNode != NULL)
+    *NodeNum = cluster->SumOfNodes;
+    int i = 0; 
+    int hash = 0;   
+    while(hash < MAX_NODE_NUM)
     {
+        tNode* pNode = cluster->nodes[hash];
         sprintf(ppData[i],"%s %d\0",pNode->addr,pNode->port);
         debug("pasrer sprintf :%s\n",ppData[i]);
-        pNode = (tCloudNode*)GetNextLinkTableNode(nodes,(tLinkTableNode *)pNode);
+        hash = pNode->hash;
         i++;
     }
     return 0;  

@@ -41,7 +41,7 @@ pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
 
-tLinkTable * gCloudNodes = NULL;
+tCluster * gCloudNodes = NULL;
 
 typedef struct TaskNode
 {
@@ -334,10 +334,10 @@ int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize)
         debug("CTRL_REG_CMD\n");
         if(DataNum == 1)
         {
-            AddCloudNodes(gCloudNodes,ppData,DataNum);       
+            AddClusterNodes(gCloudNodes,ppData,DataNum);       
         }
         int NodeNum = MAX_DATA_NUM;
-        CloudNodesInfo(gCloudNodes,ppData,&NodeNum);       
+        ClusterNodesInfo(gCloudNodes,ppData,&NodeNum);       
         BufSize = MAX_BUF_LEN;
         FormatDataN(Buf,&BufSize,CTRL_REG_RSP,ppData,NodeNum);
         SendData(h,Buf,BufSize);         
@@ -352,13 +352,14 @@ int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize)
 /* create cluster in master */
 int  CreateCluster(char * addr,int port)
 {
-    gCloudNodes = InitCloudNodes(addr,port);
+    gCloudNodes = InitCluster();
+    AddNode(gCloudNodes,addr,port);
     return 0;
 }
 
 /* loading cluster nodes in nodes */
 int  LoadingClusterNodes(char * addr,int port)
 {
-    gCloudNodes = RegisterAndLoadCloudNodes(addr,port);
+    gCloudNodes = RegisterAndLoadClusterNodes(addr,port);
     return 0;
 }

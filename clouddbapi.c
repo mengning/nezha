@@ -33,7 +33,7 @@
 #include <stdint.h>
 
 
-#define MAX_NODE_NUM        nodes->SumOfNode
+
 #define debug               printf
               
 
@@ -43,19 +43,20 @@
  */
 tDatabase  DBCreate(const char * filename)
 {
-    tLinkTable * nodes = RegisterAndLoadCloudNodes(NULL,0);
-    tCloudNode * pNode = (tCloudNode*)GetLinkTableHead(nodes);
-    while(pNode != NULL)
+    tCluster * cluster = RegisterAndLoadClusterNodes(NULL,0);
+    int i = 0;    
+    while(i < MAX_NODE_NUM)
     {
+        tNode * pNode = (tNode*)GetNode(cluster,i);
         debug("DBCreate %s:%d\n",pNode->addr,pNode->port);
         pNode->fd = RemoteDBCreate(filename,pNode->addr,pNode->port);
         if(pNode->fd == -1)
         {
             return NULL;
         }
-        pNode = (tCloudNode*)GetNextLinkTableNode(nodes,(tLinkTableNode *)pNode);
+        i = pNode->hash;
     }    
-    return (tDatabase)nodes;
+    return (tDatabase)cluster;
 }
 
 /*
@@ -63,43 +64,28 @@ tDatabase  DBCreate(const char * filename)
  */
 int DBDelete(tDatabase db)
 {
-    tLinkTable* nodes = (tLinkTable*)db;
-    tCloudNode * pNode = (tCloudNode*)GetLinkTableHead(nodes);
-    while(pNode != NULL)
+    tCluster * cluster = (tCluster*)db;
+    int i = 0;    
+    while(i < MAX_NODE_NUM)
     {
+        tNode * pNode = (tNode*)GetNode(cluster,i);
         if(pNode->fd != -1)
         {
             RemoteDBDelete(pNode->fd);
         }
-        pNode = (tCloudNode*)GetNextLinkTableNode(nodes,(tLinkTableNode *)pNode);
+        i = pNode->hash;
     } 
     return 0;
-}
-/* find the node in linktable */
-static tCloudNode * FindNode(tLinkTable* nodes,int index)
-{
-    int i = 0;
-    tCloudNode * pNode = (tCloudNode*)GetLinkTableHead(nodes);
-    while(pNode != NULL)
-    {
-        if(i == index)
-        {
-            return pNode;;
-        }
-        pNode = (tCloudNode*)GetNextLinkTableNode(nodes,(tLinkTableNode *)pNode);
-        i++;
-    }
-    return NULL; 
 }
 /*
  * Set key/value
  */
 int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 {
-    tLinkTable* nodes = (tLinkTable*)db;
-    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */
-    tCloudNode * pNode = FindNode(nodes,nodeindex);
-    debug("key=%d,nodeindex=%d\n",key,nodeindex);
+    tCluster * cluster = (tCluster*)db;
+    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    tNode* pNode = (tNode*)GetNode(cluster,hash);
+    debug("key=%d,hash=%d\n",key,hash);
     return RemoteDBSetKeyValue(pNode->fd,key,value);
 }
 
@@ -108,10 +94,10 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
  */
 int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
-    tLinkTable* nodes = (tLinkTable*)db;
-    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */
-    tCloudNode * pNode = FindNode(nodes,nodeindex);
-    debug("key=%d,nodeindex=%d\n",key,nodeindex);  
+    tCluster * cluster = (tCluster*)db;
+    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    tNode* pNode = (tNode*)GetNode(cluster,hash);
+    debug("key=%d,hash=%d\n",key,hash); 
     return RemoteDBGetKeyValue(pNode->fd,key,pvalue);
 }
 
@@ -120,9 +106,9 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
  */
 int DBDelKeyValue(tDatabase db,tKey key)
 {
-    tLinkTable* nodes = (tLinkTable*)db;
-    int nodeindex = key%MAX_NODE_NUM;/* distribute strategy */
-    tCloudNode * pNode = FindNode(nodes,nodeindex); 
-    debug("key=%d,nodeindex=%d\n",key,nodeindex);   
+    tCluster * cluster = (tCluster*)db;
+    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    tNode* pNode = (tNode*)GetNode(cluster,hash);
+    debug("key=%d,hash=%d\n",key,hash);   
     return RemoteDBDelKeyValue(pNode->fd,key);
 }
