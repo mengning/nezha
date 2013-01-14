@@ -18,7 +18,7 @@
  *
  */
 
-#include "dbapi.h"
+#include "configdb.h"
 #include "cmdline.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,14 @@
 char cmdbuf[MAX_STR_LEN];
 const char *prompt = "Nezha";
 char dbname[MAX_STR_LEN] = "\0";
-tDatabase  db = NULL;
+tConfigDB*  db = NULL;
+
+typedef unsigned int    tKey;
+
+typedef struct Value{
+    int     len;    /* Length of string */
+    char    *str;   /* Used for Value Content */
+}tValue;
 
 int GetCmd(char * cmdbuf,int size);
 int ExecCmd(char * cmdbuf);
@@ -94,7 +101,7 @@ int ExecCmd(char * cmdbuf)
         else
         {
             sscanf(cmdbuf,"%s%s",temp,dbname);
-            db = DBCreate(dbname);
+            db = ConfigInitialize();
         }        
     }
     else if(db == NULL && CheckCmd(cmdbuf,"set|get|delete") == 0)
@@ -105,7 +112,7 @@ int ExecCmd(char * cmdbuf)
     {
         if(db != NULL)
         {
-            DBDelete(db);
+            ConfigDestroy(db);
             db = NULL;
         }
         dbname[0] = '\0';     
@@ -114,7 +121,7 @@ int ExecCmd(char * cmdbuf)
     {
         if(db != NULL)
         {
-            DBDelete(db);
+            ConfigDestroy(db);
         }
         return 1;     
     }
@@ -126,7 +133,7 @@ int ExecCmd(char * cmdbuf)
         sscanf(cmdbuf,"%s%d%s",temp,&key,str);
         value.str = strstr(cmdbuf,str);
         value.len = strlen(value.str);//cmdbuf + MAX_STR_LEN - value.str;
-        if(DBSetKeyValue(db,key,value) != 0)
+        if(ConfigPut(db,(void*)&key,sizeof(tKey),value.str,value.len) != 0)
         {
             printf("ERROR:set %d %s\n",(int)key,value.str);
         }
@@ -140,7 +147,7 @@ int ExecCmd(char * cmdbuf)
         value.str = str;
         value.len = MAX_STR_LEN;
         sscanf(cmdbuf,"%s%d",temp,&key);        
-        if(DBGetKeyValue(db,key,&value) == 0)
+        if(ConfigGet(db,(void*)&key,sizeof(tKey),value.str,&value.len) == 0)
         {
             printf("%d -> %s\n",key,value.str);
         }
@@ -157,7 +164,7 @@ int ExecCmd(char * cmdbuf)
         value.str = str;
         value.len = MAX_STR_LEN;
         sscanf(cmdbuf,"%s%d",temp,&key);        
-        if(DBDelKeyValue(db,key) != 0)
+        if(ConfigDel(db,(void*)&key,sizeof(tKey)) != 0)
         {
             printf("ERROR:delete %d\n",(int)key);
         }
