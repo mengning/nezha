@@ -30,6 +30,8 @@
 #define MAX_BUF_LEN         1024
 
 #define debug  printf
+/* tell other nodes who am i */
+int BroadcastMyself(int fd,char * addr,int port);
              
 /* Init cloud nodes info */
 tCluster *  InitCluster()
@@ -146,7 +148,7 @@ tCluster *  RegisterAndLoadClusterNodes(char * addr,int port)
     {
         DataNum = 1;
         sprintf(ppData[0],"%s %d\0",addr,port);
-        debug("pasrer sprintf :%s\n",ppData[0]);     
+        debug("RegisterAndLoadClusterNodes :%s\n",ppData[0]);     
     }
     FormatDataN(Buf,&BufSize,CTRL_REG_CMD,ppData,DataNum);
     SendData(h,Buf,BufSize);
@@ -161,6 +163,7 @@ tCluster *  RegisterAndLoadClusterNodes(char * addr,int port)
     tCluster * cluster = InitCluster();
     AddClusterNodes(cluster,ppData,DataNum);    
     CloseRemoteService(h);
+    debug("RegisterAndLoadClusterNodes END!\n");
     return cluster;    
 }
 /* add recved buf(nodes info) to cluster */
@@ -201,10 +204,78 @@ int ClusterNodesInfo(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],
     {
         tNode* pNode = cluster->nodes[hash];
         sprintf(ppData[i],"%s %d\0",pNode->addr,pNode->port);
-        debug("pasrer sprintf :%s\n",ppData[i]);
+        debug("ClusterNodesInfo :%s\n",ppData[i]);
         hash = pNode->hash;
         i++;
     }
     return 0;  
 }
 
+int ConnectDataNode(tCluster* cluster,char * addr,int port,char * filename)
+{
+    int i = 0;    
+    while(i < MAX_NODE_NUM)
+    {
+        tNode * pNode = (tNode*)GetNode(cluster,i);        
+        if(strcmp(addr,pNode->addr) == 0 && pNode->port == port)
+        {
+            pNode->fd = 0;/* don't need socket */
+        }
+        else
+        {
+            debug("RemoteDBCreate %s:%d\n",pNode->addr,pNode->port);
+            pNode->fd = RemoteDBCreate(filename,pNode->addr,pNode->port);
+            if(pNode->fd == -1)
+            {
+                return -1;
+            }
+            if(strcmp(IP_ADDR,pNode->addr) == 0 && pNode->port == PORT)
+            {
+               ; 
+            }
+            else
+            {
+                BroadcastMyself(pNode->fd,addr,port);
+            }
+        }
+        i = pNode->hash;
+    } 
+    return 0;
+}
+int DisconnectDataNode(tCluster* cluster)
+{
+    int i = 0;    
+    while(i < MAX_NODE_NUM)
+    {
+        tNode * pNode = (tNode*)GetNode(cluster,i);
+        if(pNode->fd > 0)
+        {
+            RemoteDBDelete(pNode->fd);
+        }
+        i = pNode->hash;
+    } 
+    return 0;
+}
+
+/* tell other nodes who am i */
+int BroadcastMyself(int h,char * addr,int port)
+{
+    int DataNum = -1;
+    char Buf[MAX_BUF_LEN] = "\0";
+    int BufSize = MAX_BUF_LEN;
+    char szMsg[MAX_BUF_LEN] = "\0";
+    char ppData[MAX_DATA_NUM][MAX_DATA_LEN] = {0};
+    DataNum = 1;
+    sprintf(ppData[0],"%s %d\0",addr,port);
+    FormatDataN(Buf,&BufSize,CTRL_REG_CMD,ppData,DataNum);
+    SendData(h,Buf,BufSize);
+    RecvData(h,Buf,&BufSize);
+    int cmd = -1;
+    ParseDataN(Buf,BufSize,&cmd,&DataNum,ppData);
+    if(cmd != CTRL_REG_RSP || DataNum > MAX_DATA_NUM || DataNum < 2)
+    {
+        fprintf(stderr,"BroadcastMyself Error,%s:%d\n",__FILE__,__LINE__);
+        return -1;         
+    }
+    return 0;    
+}

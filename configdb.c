@@ -27,8 +27,7 @@
 #include "dbapi.h"
 
 #define debug  printf
-int ConnectDataNode(tCluster* cluster,char * addr,int port,char * filename);
-int DisconnectDataNode(tCluster* cluster);
+
 /**********************************************/
 /* Database Operations
 /**********************************************/
@@ -66,10 +65,6 @@ tConfigDB*  ConfigInitialize(int mode,char * addr,int port,char * filename)
         { 
             debug("GRID_MODE:Data Node.\n");           
             db->cluster = (void*)RegisterAndLoadClusterNodes(addr,port);
-            if(ConnectDataNode((tCluster*)db->cluster,addr,port,filename) != 0)
-            {
-                goto ERROR;
-            }
         }   
     }
     else
@@ -84,7 +79,12 @@ tConfigDB*  ConfigInitialize(int mode,char * addr,int port,char * filename)
     {
         fprintf(stderr,"Service Engine pthread_create Error,%s:%d\n",__FILE__,__LINE__);
         goto ERROR;
-    } 
+    }
+    if(ConnectDataNode((tCluster*)db->cluster,addr,port,filename) != 0)
+    {
+        goto ERROR;
+    }
+    //BroadcastMyself((tCluster*)db->cluster,addr,port);
     return db;
 ERROR:
     ConfigDestroy(db);
@@ -174,40 +174,3 @@ int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
 /**********************************************/
 /* Internal Operations
 /**********************************************/
-int ConnectDataNode(tCluster* cluster,char * addr,int port,char * filename)
-{
-    int i = 0;    
-    while(i < MAX_NODE_NUM)
-    {
-        tNode * pNode = (tNode*)GetNode(cluster,i);
-        debug("DBCreate %s:%d\n",pNode->addr,pNode->port);
-        if(strcmp(addr,pNode->addr) == 0 && pNode->port == port)
-        {
-            pNode->fd = 0;/* don't need socket */
-        }
-        else
-        {
-            pNode->fd = RemoteDBCreate(filename,pNode->addr,pNode->port);
-            if(pNode->fd == -1)
-            {
-                return -1;
-            }
-        }
-        i = pNode->hash;
-    } 
-    return 0;
-}
-int DisconnectDataNode(tCluster* cluster)
-{
-    int i = 0;    
-    while(i < MAX_NODE_NUM)
-    {
-        tNode * pNode = (tNode*)GetNode(cluster,i);
-        if(pNode->fd > 0)
-        {
-            RemoteDBDelete(pNode->fd);
-        }
-        i = pNode->hash;
-    } 
-    return 0;
-}

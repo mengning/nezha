@@ -68,4 +68,6 @@ int AddClusterNodes(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],i
 /* Cluseter(Nodes info) to ppData array */
 int ClusterNodesInfo(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],int *NodeNum);
 
+int ConnectDataNode(tCluster* cluster,char * addr,int port,char * filename);
+int DisconnectDataNode(tCluster* cluster);
 #endif /* _NODES_H_ */

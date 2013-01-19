@@ -42,7 +42,7 @@ pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
 
-tCluster * gCloudNodes = NULL;
+tConfigDB* gConfigDB = NULL;
 
 typedef struct TaskNode
 {
@@ -78,7 +78,7 @@ int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize);
 
 int ServiceEngine(tConfigDB* db)
 {
-    gCloudNodes = (tCluster*)db->cluster;
+    gConfigDB = db;
     int i;
     if(MAX_TASK_NUM > 0)
     {
@@ -336,13 +336,13 @@ int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize)
         debug("CTRL_REG_CMD\n");
         if(DataNum == 1)
         {
-            AddClusterNodes(gCloudNodes,ppData,DataNum);       
+            AddClusterNodes((tCluster*)gConfigDB->cluster,ppData,DataNum);     
         }
         int NodeNum = MAX_DATA_NUM;
-        ClusterNodesInfo(gCloudNodes,ppData,&NodeNum);       
+        ClusterNodesInfo((tCluster*)gConfigDB->cluster,ppData,&NodeNum);       
         BufSize = MAX_BUF_LEN;
         FormatDataN(Buf,&BufSize,CTRL_REG_RSP,ppData,NodeNum);
-        SendData(h,Buf,BufSize);         
+        SendData(h,Buf,BufSize);        
     }
     else
     {
@@ -351,17 +351,4 @@ int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize)
     } 
     return 0;    
 }
-/* create cluster in master */
-int  CreateCluster(char * addr,int port)
-{
-    gCloudNodes = InitCluster();
-    AddNode(gCloudNodes,addr,port);
-    return 0;
-}
 
-/* loading cluster nodes in nodes */
-int  LoadingClusterNodes(char * addr,int port)
-{
-    gCloudNodes = RegisterAndLoadClusterNodes(addr,port);
-    return 0;
-}
