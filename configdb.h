@@ -26,15 +26,35 @@
 extern "C" {
 #endif
 
+#include <pthread.h>
+
 /********************************************************/
 /*        Abstract Interface of ConfigDB API            */
 /********************************************************/
-#define SUCCESS         0
-#define FAILURE         (-1)
+#define SUCCESS             0
+#define FAILURE             (-1)
+/* mode */
+#define LOCAL_MODE          1
+#define GRID_MODE           2
+#define MASTER_MODE         4
+// Master info
+//#define PORT                5001
+//#define ADDR                "127.0.0.1"
+
+#define NAME_STR_LEN        128
 
 typedef struct
 {
-    void  * db; 
+    int     mode;
+    char    filename[NAME_STR_LEN];
+    char    addr[NAME_STR_LEN];
+    int     port;
+    void  * db;
+    void  * cache;
+    void  * cluster;
+    pthread_t engine;
+    
+    
 }tConfigDB;
 
 /**********************************************/
@@ -42,13 +62,13 @@ typedef struct
 /**********************************************/
 /*
  * Initialize ConfigDB
- * input	: None
+ * input	: mode,addr,port,filename
  * output	: None
  * in/out	: None
  * return	: if SUCCESS return (tConfigDB *)Database handler
  *          : if FAILURE return NULL
  */
-tConfigDB*  ConfigInitialize(void);
+tConfigDB*  ConfigInitialize(int mode,char * addr,int port,char * filename);
 	
 
 /*

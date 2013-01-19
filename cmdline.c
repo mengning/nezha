@@ -85,14 +85,14 @@ int ExecCmd(char * cmdbuf)
     char temp[MAX_STR_LEN] = "\0";
     if(CheckCmd(cmdbuf,"help") == 0 )
     {
-        printf("open filename - EX:open nezha.hdb\n"); 
+        printf("open ip port filename - EX:open 127.0.0.1 5001 nezha.hdb\n"); 
         printf("set key value - EX:set 100 helloworld\n");
         printf("get key       - EX:get 100\n");
         printf("delete key    - EX:delete 100\n");
         printf("close         - leave nezha.hdb\n"); 
         printf("help          - list cmds info\n"); 
     }
-    else if(CheckCmd(cmdbuf,"open (.*)\\.hdb") == 0)
+    else if(CheckCmd(cmdbuf,"open (.*) ([0-9]+) (.*)\\.hdb") == 0)
     {
         if(strlen(dbname) > 0)
         {
@@ -100,8 +100,10 @@ int ExecCmd(char * cmdbuf)
         }
         else
         {
-            sscanf(cmdbuf,"%s%s",temp,dbname);
-            db = ConfigInitialize();
+            char addr[128];
+            int port;
+            sscanf(cmdbuf,"%s%s%d%s",temp,addr,&port,dbname);
+            db = ConfigInitialize(GRID_MODE,addr,port,dbname);
         }        
     }
     else if(db == NULL && CheckCmd(cmdbuf,"set|get|delete") == 0)

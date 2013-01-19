@@ -6,7 +6,8 @@ TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
 all:	nezha
 
 # nezha:grid version	
-nezha:	configdb.o cmdline.o client.o
+nezha:	event.o msgq.o engine.o nodes.o socketwrapper.o dbapi.o protocol.o \
+        remotedbapi.o configdb.o cmdline.o client.o
 	gcc -o $@ $^ -ltokyocabinet
 	@printf '#=====================================\n'
 	@printf '# nezha:grid version\n'

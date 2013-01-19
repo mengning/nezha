@@ -26,7 +26,7 @@
 /*
  * Server Engine for Clients' Requests
  */
-int ServiceEngine(char* addr,int port);
+int ServiceEngine(tConfigDB* db);
 /* create cluster in master */
 int  CreateCluster(char * addr,int port);
 /* loading cluster nodes in nodes */

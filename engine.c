@@ -25,6 +25,7 @@
 #include "event.h"
 #include "msgq.h"
 #include "nodes.h"
+#include "configdb.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,8 +76,9 @@ int Handler(tServiceHandler h,char *Buf,int BufSize);
 int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize);
 int HandleControlRequest(tServiceHandler h,char *Buf,int BufSize);
 
-int ServiceEngine(char * addr, int    port)
+int ServiceEngine(tConfigDB* db)
 {
+    gCloudNodes = (tCluster*)db->cluster;
     int i;
     if(MAX_TASK_NUM > 0)
     {
@@ -95,8 +97,8 @@ int ServiceEngine(char * addr, int    port)
     InitCDManager();
     /* Server Engine for Clients' Requests */
     tServiceHandler request = -1;
-    printf("InitializeNetService at %s:%d\n",addr,port);
-    InitializeNetService(addr,port);
+    printf("InitializeNetService at %s:%d\n",db->addr,db->port);
+    InitializeNetService(db->addr,db->port);
     while(1)
     {
         /* return the client fd who have real data request */

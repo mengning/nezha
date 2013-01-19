@@ -27,7 +27,7 @@
 
 #define MAX_NODE_NUM        1024
 #define PORT                5001
-#define IP_ADDR             "127.0.0.1\0"
+#define IP_ADDR             "127.0.0.1"
 
 #define ADDR_STR_LEN        128              
 
