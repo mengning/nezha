@@ -256,6 +256,7 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
             ErrorResponse(h,"The key NOT FOUND!\n");
             return -1; 
         }
+        debug("GET %d %s\n",key,value.str);
         BufSize = MAX_BUF_LEN;
         FormatData2(Buf,&BufSize,GET_RSP,(char*)&key,sizeof(tKey),value.str,value.len);
         SendData(h,Buf,BufSize);         

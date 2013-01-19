@@ -142,11 +142,10 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
     tCluster * cluster = (tCluster*)db->cluster;
     tKey key = *(tKey*)pKey;
     tValue value;
-    value.str = pValue;
+    value.str = (char*)pValue;
     value.len = *pValueSize;
     int hash = key%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
-    debug("key=%d,hash=%d\n",key,hash);
     if(pNode->fd == 0)
     {
         DBGetKeyValue(db->db,key,&value);
@@ -164,6 +163,7 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
     {
         RemoteDBGetKeyValue(pNode->fd,key,&value);
     }
+    debug("GET %d,%s\n",key,(char*)pValue);
     *pValueSize = value.len;
     return SUCCESS;
 }

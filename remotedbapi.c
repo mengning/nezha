@@ -187,7 +187,7 @@ int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
         return -1;
     }
     pvalue->len = Data2Size;
-    pvalue->str = Data2;
+    memcpy(pvalue->str,Data2,Data2Size);
     return 0;
 }
 

@@ -135,6 +135,7 @@ int ExecCmd(char * cmdbuf)
         sscanf(cmdbuf,"%s%d%s",temp,&key,str);
         value.str = strstr(cmdbuf,str);
         value.len = strlen(value.str);//cmdbuf + MAX_STR_LEN - value.str;
+        value.str[value.len] = '\0';
         if(ConfigPut(db,(void*)&key,sizeof(tKey),value.str,value.len) != 0)
         {
             printf("ERROR:set %d %s\n",(int)key,value.str);

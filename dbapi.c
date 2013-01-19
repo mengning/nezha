@@ -33,6 +33,8 @@
 TCMDB * allOpenedDB = NULL;
 pthread_mutex_t dbmutex;
 
+#define debug printf
+
 typedef struct OpenedDB
 {
     TCHDB *hdb;
@@ -68,6 +70,7 @@ tDatabase  DBCreate(const char * filename)
         {
             hdb = opendb->hdb;
             opendb->counter ++ ;
+            debug("CREATE DB:%s %d\n",filename,opendb->counter);
             tcmdbput(allOpenedDB,(void*)filename,strlen(filename),(void*)opendb,vsize);
             pthread_mutex_unlock(&dbmutex);
             free(opendb);
