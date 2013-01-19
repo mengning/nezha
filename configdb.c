@@ -84,7 +84,6 @@ tConfigDB*  ConfigInitialize(int mode,char * addr,int port,char * filename)
     {
         goto ERROR;
     }
-    //BroadcastMyself((tCluster*)db->cluster,addr,port);
     return db;
 ERROR:
     ConfigDestroy(db);
@@ -121,6 +120,15 @@ int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int 
     {
         return DBSetKeyValue(db->db,key,value);
     }
+    else if(pNode->fd == -1)
+    {
+        pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
+        if(pNode->fd == -1)
+        {
+            return -1;
+        }
+        return RemoteDBSetKeyValue(pNode->fd,key,value);
+    }
     else
     {
         return RemoteDBSetKeyValue(pNode->fd,key,value);
@@ -143,6 +151,15 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
     {
         DBGetKeyValue(db->db,key,&value);
     }
+    else if(pNode->fd == -1)
+    {
+        pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
+        if(pNode->fd == -1)
+        {
+            return -1;
+        }
+        RemoteDBGetKeyValue(pNode->fd,key,&value);
+    }
     else
     {
         RemoteDBGetKeyValue(pNode->fd,key,&value);
@@ -163,6 +180,15 @@ int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
     if(pNode->fd == 0)
     {
         return DBDelKeyValue(db->db,key);
+    }
+    else if(pNode->fd == -1)
+    {
+        pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
+        if(pNode->fd == -1)
+        {
+            return -1;
+        }
+        return RemoteDBDelKeyValue(pNode->fd,key);
     }
     else
     {
