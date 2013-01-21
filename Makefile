@@ -1,7 +1,7 @@
 # Makefile for Nezha project
 
 TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
-          nezha
+          nezha libconfigdb.* 
 OBJS    = event.o msgq.o engine.o nodes.o socketwrapper.o dbapi.o protocol.o \
         remotedbapi.o configdb.o 
 
