@@ -36,10 +36,14 @@ extern "C" {
 #define FAILURE         (-1)
 
 typedef void*           tDatabase;
-typedef unsigned int    tKey;
+
+typedef struct Key{
+    int     len;    /* Length of Key */
+    char    *str;   /* Used for Key Content */
+}tKey;
 
 typedef struct Value{
-    int     len;    /* Length of string */
+    int     len;    /* Length of Value */
     char    *str;   /* Used for Value Content */
 }tValue;
 

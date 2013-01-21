@@ -57,19 +57,22 @@ typedef struct TaskNode
                   i = random()%(x==0?1:x);
 
 /*
- * store cliend fd and database mapping table
+ * store client fd and database mapping table
  */
 tDatabase  CDManager = NULL;
 #define    InitCDManager()  CDManager = MDBCreate();
 #define    ShutCDManager()  MDBDelete(CDManager);
 #define    AttachCD(c,mdb)   \
+        tKey k;k.str = (char*)&c;k.len = sizeof(c); \
         tValue v;v.str = (char*)&mdb;v.len = sizeof(tDatabase); \
-        MDBSetKeyValue(CDManager,c,v);
+        MDBSetKeyValue(CDManager,k,v);
 #define    DettachCD(c)   \
-        MDBDelKeyValue(CDManager,c);          
+        tKey k;k.str = (char*)&c;k.len = sizeof(c); \
+        MDBDelKeyValue(CDManager,k);          
 #define    GetMdb(c,mdb)   \
+        tKey k1;k1.str = (char*)&c;k1.len = sizeof(c); \
         tValue v;v.str = (char*)&mdb;v.len = sizeof(tDatabase); \
-        MDBGetKeyValue(CDManager,c,&v);      
+        MDBGetKeyValue(CDManager,k1,&v);      
 
 int HandleRequests(int tasknum);
 int Handler(tServiceHandler h,char *Buf,int BufSize);
@@ -238,14 +241,11 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
     else if(cmd == GET_CMD && DataNum == 1)
     {
         debug("GET_CMD\n");
-        if(Data1Size != sizeof(tKey))
-        {
-            fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
-            return -1;        
-        }
         tDatabase  db = NULL;
         GetMdb(h,db);        
-        tKey key = *(tKey*)Data1;
+        tKey key;
+        key.str = (char*)Data1;
+        key.len = Data1Size;
         tValue value;
         Data2Size = MAX_BUF_LEN;
         value.len = Data2Size;
@@ -256,7 +256,6 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
             ErrorResponse(h,"The key NOT FOUND!\n");
             return -1; 
         }
-        debug("GET %d %s\n",key,value.str);
         BufSize = MAX_BUF_LEN;
         FormatData2(Buf,&BufSize,GET_RSP,(char*)&key,sizeof(tKey),value.str,value.len);
         SendData(h,Buf,BufSize);         
@@ -264,17 +263,12 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
     else if(cmd == SET_CMD && DataNum == 2)
     {
         debug("SET_CMD\n");
-        if(Data1Size != sizeof(tKey))
-        {
-            fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
-            return -1;        
-        }
-        tKey key = *(tKey*)Data1;
+        tKey key;
+        key.str = (char*)Data1;
+        key.len = Data1Size;
         tValue value;
         value.len = Data2Size;
         value.str = Data2;
-        debug("SET_CMD:%d -> %s\n",*(tKey*)(Buf + 12),(char*)(Buf + 20));
-        debug("SET_CMD:%d -> %s\n",key,value.str);
         tDatabase  db = NULL;
         GetMdb(h,db);        
         DBSetKeyValue(db,key,value);
@@ -285,12 +279,9 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
     else if(cmd == DELETE_CMD && DataNum == 1)
     {
         debug("DELETE_CMD\n");
-        if(Data1Size != sizeof(tKey))
-        {
-            fprintf(stderr,"Data Format Error,%s:%d\n",__FILE__,__LINE__);
-            return -1;         
-        }
-        tKey key = *(tKey*)Data1; 
+        tKey key;
+        key.str = (char*)Data1;
+        key.len = Data1Size;
         tDatabase  db = NULL;
         GetMdb(h,db);              
         ret = DBDelKeyValue(db,key);

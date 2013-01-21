@@ -7,6 +7,8 @@ Nezha is code name of this project.
 
 It contains configdb lib(configdb.h/libconfigdb.so) and a command line test program(Nezha)
 
+执行make configdb和sudo make install编译安装configdb，然后可以开始使用configdb.h提供的接口进行开发了
+
 Software Architecture of Nezha
 ------------------------------
 

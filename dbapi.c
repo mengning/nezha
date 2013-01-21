@@ -160,7 +160,7 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
 {
     int ecode;
 
-    if(!tchdbput(db,&key,sizeof(tKey),value.str,value.len))
+    if(!tchdbput(db,key.str,key.len,value.str,value.len))
     {
         ecode = tchdbecode(db);
         fprintf(stderr, "put error: %s\n", tchdberrmsg(ecode));
@@ -178,7 +178,7 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
     int ecode;
     int ret;
 
-    ret = tchdbget3(db,&key,sizeof(tKey),pvalue->str,pvalue->len);
+    ret = tchdbget3(db,key.str,key.len,pvalue->str,pvalue->len);
     if(ret == -1)
     {
         ecode = tchdbecode(db);
@@ -196,7 +196,7 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 int DBDelKeyValue(tDatabase db,tKey key)
 {
     int ecode;
-    if(!tchdbout(db, &key, sizeof(tKey)))
+    if(!tchdbout(db, key.str,key.len))
     {
         ecode = tchdbecode(db);
         fprintf(stderr, "delete error: %s\n", tchdberrmsg(ecode));
@@ -245,7 +245,7 @@ int MDBDelete(tDatabase mdb)
  */	
 int MDBSetKeyValue(tDatabase mdb,tKey key,tValue value)
 {
-    tcmdbput((TCMDB*)mdb,(void*)&key,sizeof(tKey),value.str,value.len); 
+    tcmdbput((TCMDB*)mdb,(void*)key.str,key.len,value.str,value.len); 
     return 0;   
 }
 
@@ -261,7 +261,7 @@ int MDBSetKeyValue(tDatabase mdb,tKey key,tValue value)
 int MDBGetKeyValue(tDatabase mdb,tKey key,tValue *pvalue)
 {
     int vsize = -1;
-    char *v = tcmdbget((TCMDB*)mdb,(void*)&key,sizeof(tKey),&vsize);
+    char *v = tcmdbget((TCMDB*)mdb,(void*)key.str,key.len,&vsize);
     if(v != NULL && vsize > 0 && vsize <= pvalue->len)
     {
         memcpy(pvalue->str,v,vsize);
@@ -280,7 +280,7 @@ int MDBGetKeyValue(tDatabase mdb,tKey key,tValue *pvalue)
  */
 int MDBDelKeyValue(tDatabase mdb,tKey key)
 {
-    tcmdbout((TCMDB*)mdb,(void*)&key,sizeof(tKey));
+    tcmdbout((TCMDB*)mdb,(void*)key.str,key.len);
     return 0;
 }
 

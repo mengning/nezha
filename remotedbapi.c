@@ -116,10 +116,9 @@ int RemoteDBDelete(int db)
  */
 int RemoteDBSetKeyValue(int db,tKey key,tValue value)
 {
-    debug("SET_CMD:%d -> %s\n",key,value.str);
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
-    int ret = FormatData2(Buf,&BufSize,SET_CMD,(char*)&key,sizeof(tKey),value.str,value.len);
+    int ret = FormatData2(Buf,&BufSize,SET_CMD,(char*)key.str,key.len,value.str,value.len);
     if(ret == -1)
     {
         return -1;
@@ -157,7 +156,7 @@ int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
     }
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
-    int ret = FormatData1(Buf,&BufSize,GET_CMD,(char*)&key,sizeof(tKey));
+    int ret = FormatData1(Buf,&BufSize,GET_CMD,(char*)key.str,key.len);
     if(ret == -1)
     {
         return -1;
@@ -180,8 +179,7 @@ int RemoteDBGetKeyValue(int db,tKey key,tValue *pvalue)
     {
         return -1;
     }    
-    if(cmd != GET_RSP || DataNum != 2 
-        || key != *(tKey*)Data1 || Data1Size != sizeof(tKey))
+    if(cmd != GET_RSP || DataNum != 2 )
     {
         fprintf(stderr,"Remote DBGetKeyValue Error,%s:%d\n", __FILE__,__LINE__);
         return -1;
@@ -202,7 +200,7 @@ int RemoteDBDelKeyValue(int db,tKey key)
     }
     char Buf[MAX_BUF_LEN] = "\0";
     int BufSize = MAX_BUF_LEN;
-    int ret = FormatData1(Buf,&BufSize,DELETE_CMD,(char*)&key,sizeof(tKey));
+    int ret = FormatData1(Buf,&BufSize,DELETE_CMD,(char*)key.str,key.len);
     if(ret == -1)
     {
         return -1;

@@ -27,6 +27,7 @@
 #include "dbapi.h"
 
 #define debug  printf
+int gethash(const char *kbuf, int ksiz);
 
 /**********************************************/
 /* Database Operations
@@ -109,13 +110,15 @@ int ConfigDestroy(tConfigDB* db)
 int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int ValueSize)
 {
     tCluster * cluster = (tCluster*)db->cluster;
-    tKey key = *(tKey*)pKey;
+    tKey key;
+    key.str = (char*)pKey;
+    key.len = KeySize;
     tValue value;
     value.str = (char*)pValue;
     value.len = ValueSize;
-    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    unsigned int hash = gethash(key.str,key.len);
+    hash = hash%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
-    debug("key=%d,hash=%d\n",key,hash);
     if(pNode->fd == 0)
     {
         return DBSetKeyValue(db->db,key,value);
@@ -140,11 +143,14 @@ int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int 
 int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValueSize)
 {
     tCluster * cluster = (tCluster*)db->cluster;
-    tKey key = *(tKey*)pKey;
+    tKey key;
+    key.str = (char*)pKey;
+    key.len = KeySize;
     tValue value;
     value.str = (char*)pValue;
     value.len = *pValueSize;
-    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    unsigned int hash = gethash(key.str,key.len);
+    hash = hash%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
     if(pNode->fd == 0)
     {
@@ -163,7 +169,6 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
     {
         RemoteDBGetKeyValue(pNode->fd,key,&value);
     }
-    debug("GET %d,%s\n",key,(char*)pValue);
     *pValueSize = value.len;
     return SUCCESS;
 }
@@ -173,10 +178,12 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
 int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
 {
     tCluster * cluster = (tCluster*)db->cluster;
-    tKey key = *(tKey*)pKey;
-    int hash = key%MAX_NODE_NUM;/* distribute strategy */
+    tKey key;
+    key.str = (char*)pKey;
+    key.len = KeySize;
+    unsigned int hash = gethash(key.str,key.len);
+    hash = hash%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
-    debug("key=%d,hash=%d\n",key,hash);
     if(pNode->fd == 0)
     {
         return DBDelKeyValue(db->db,key);
@@ -200,3 +207,19 @@ int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
 /**********************************************/
 /* Internal Operations
 /**********************************************/
+/*
+ * hash
+ * copy from tokyocabinet,I don't why so. 
+ */
+int gethash(const char *kbuf, int ksiz)
+{
+  unsigned int idx = 19780211;
+  unsigned int hash = 751;
+  const char *rp = kbuf + ksiz;
+  while(ksiz--)
+  {
+    idx = idx * 37 + *(unsigned char *)kbuf++;
+    hash = (hash * 31) ^ *(unsigned char *)--rp;
+  }
+  return hash;
+}
