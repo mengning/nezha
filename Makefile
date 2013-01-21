@@ -2,17 +2,32 @@
 
 TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
           nezha
+OBJS    = event.o msgq.o engine.o nodes.o socketwrapper.o dbapi.o protocol.o \
+        remotedbapi.o configdb.o 
 
-all:	nezha
+all:	configdb install nezha
 
 # nezha:grid version	
-nezha:	event.o msgq.o engine.o nodes.o socketwrapper.o dbapi.o protocol.o \
-        remotedbapi.o configdb.o cmdline.o client.o
-	gcc -o $@ $^ -ltokyocabinet
+nezha:	cmdline.o client.o
+	gcc -o $@ $^ -L. -lconfigdb -ltokyocabinet
 	@printf '#=====================================\n'
 	@printf '# nezha:grid version\n'
 	@printf '# execute ./nezha\n'
 	@printf '#=====================================\n'
+
+configdb: $(OBJS)
+	ar -r libconfigdb.a $(OBJS)
+	ar -s libconfigdb.a
+	ranlib libconfigdb.a
+	gcc -g -shared -W1 -o libconfigdb.so $^ -ltokyocabinet -lc
+
+install:
+	cp configdb.h /usr/include
+	cp libconfigdb.* /usr/lib
+
+uninstall:
+	rm -rf  /usr/include/configdb.h
+	rm -rf  /usr/lib/libconfigdb.*
 
 test:   dbapi.o testdbapi.o \
 		socketwrapper.o testsocketwrapperserver.o testsocketwrapperclient.o \
@@ -34,7 +49,7 @@ test:   dbapi.o testdbapi.o \
 
 
 .c.o:
-	gcc -c $<
+	gcc -fPIC -g -c $<
 
 clean:
 	rm -rf *.o $(TARGETS) *.bak
