@@ -1,18 +1,18 @@
 # Makefile for Nezha project
 
 TARGETS = testdbapi  testswserver testswclient testprotocol testlinktable \
-          nezha libconfigdb.* 
+          master libconfigdb.* 
 OBJS    = event.o msgq.o engine.o nodes.o socketwrapper.o dbapi.o protocol.o \
         remotedbapi.o configdb.o 
 
-all:	configdb install nezha
+all:	configdb master
 
-# nezha:grid version	
-nezha:	cmdline.o client.o
+# master:grid version	
+master:	cmdline.o client.o
 	gcc -o $@ $^ -L. -lconfigdb -ltokyocabinet
 	@printf '#=====================================\n'
-	@printf '# nezha:grid version\n'
-	@printf '# execute ./nezha\n'
+	@printf '# master:grid version\n'
+	@printf '# execute ./master\n'
 	@printf '#=====================================\n'
 
 configdb: $(OBJS)
@@ -24,10 +24,12 @@ configdb: $(OBJS)
 install:
 	cp configdb.h /usr/include
 	cp libconfigdb.* /usr/lib
+	cp master /usr/bin/
 
 uninstall:
 	rm -rf  /usr/include/configdb.h
 	rm -rf  /usr/lib/libconfigdb.*
+	rm -rf  /usr/bin/master
 
 test:   dbapi.o testdbapi.o \
 		socketwrapper.o testsocketwrapperserver.o testsocketwrapperclient.o \
