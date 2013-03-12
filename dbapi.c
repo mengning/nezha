@@ -33,7 +33,7 @@
 TCMDB * allOpenedDB = NULL;
 pthread_mutex_t dbmutex;
 
-#define debug printf
+#define debug 
 
 typedef struct OpenedDB
 {
@@ -166,7 +166,6 @@ int DBSetKeyValue(tDatabase db,tKey key,tValue value)
         fprintf(stderr, "put error: %s\n", tchdberrmsg(ecode));
         return -1;
     }
-
     return 0;
 }
 
@@ -177,7 +176,6 @@ int DBGetKeyValue(tDatabase db,tKey key,tValue *pvalue)
 {
     int ecode;
     int ret;
-
     ret = tchdbget3(db,key.str,key.len,pvalue->str,pvalue->len);
     if(ret == -1)
     {

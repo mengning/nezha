@@ -37,10 +37,14 @@ int main()
     while(1)
     {
         h = ServiceStart();
-        RecvData(h,szBuf,&size);
-        printf("server recv:%s\n",szBuf); 
+        printf("return h = %d\n",h);
+        size = MAX_BUF_LEN;
+        int ret = RecvData(h,szBuf,&size);
+        if(ret == 0)
+            continue;
+        printf("server recv:%d,%s,%d,%d\n",h,szBuf,ret,size); 
         SendData(h,szReplyMsg,strlen(szReplyMsg));
-        printf("server send:%s\n",szReplyMsg);  
+        printf("server send:%d,%s\n",h,szReplyMsg);  
         ServiceStop(h); 
     }
     ShutdownNetService();

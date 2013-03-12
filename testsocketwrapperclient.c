@@ -33,10 +33,14 @@ int main()
     char szMsg[MAX_BUF_LEN] = "hello\0";
     tServiceHandler h = -1;
     h = OpenRemoteService(IP_ADDR,PORT);
+#if 1
+    tServiceHandler h1 = OpenRemoteService(IP_ADDR,PORT);
+
     SendData(h,szMsg,strlen(szMsg));
     printf("client send:%s\n",szMsg); 
     RecvData(h,szBuf,&size); 
     printf("client recv:%s\n",szBuf);     
     CloseRemoteService(h);
+#endif    
     return 0;
 }

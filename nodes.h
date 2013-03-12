@@ -25,9 +25,9 @@
 
 #include "protocol.h"
 
-#define MAX_NODE_NUM        1024
+#define MAX_NODE_NUM        3
 #define PORT                5001
-#define IP_ADDR             "127.0.0.1"
+#define IP_ADDR             "219.219.216.41"
 
 #define ADDR_STR_LEN        128              
 
@@ -42,7 +42,7 @@ typedef struct Node
 typedef struct Cluster
 {
     int SumOfNodes;
-    tNode * nodes[MAX_NODE_NUM]; /* array of node info */
+    tNode * nodes[MAX_NODE_NUM+1]; /* array of node info */
 }tCluster;
 
 

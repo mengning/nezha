@@ -26,7 +26,8 @@
 #include "engine.h"
 #include "dbapi.h"
 
-#define debug  printf
+#include "common.h"
+
 int gethash(const char *kbuf, int ksiz);
 
 /**********************************************/
@@ -110,6 +111,7 @@ int ConfigDestroy(tConfigDB* db)
 int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int ValueSize)
 {
     tCluster * cluster = (tCluster*)db->cluster;
+    int ret = -1;
     tKey key;
     key.str = (char*)pKey;
     key.len = KeySize;
@@ -119,9 +121,10 @@ int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int 
     unsigned int hash = gethash(key.str,key.len);
     hash = hash%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
+    /* Put Data */
     if(pNode->fd == 0)
     {
-        return DBSetKeyValue(db->db,key,value);
+        ret = DBSetKeyValue(db->db,key,value);
     }
     else if(pNode->fd == -1)
     {
@@ -130,12 +133,35 @@ int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int 
         {
             return -1;
         }
-        return RemoteDBSetKeyValue(pNode->fd,key,value);
+        ret = RemoteDBSetKeyValue(pNode->fd,key,value);
     }
     else
     {
-        return RemoteDBSetKeyValue(pNode->fd,key,value);
+        ret = RemoteDBSetKeyValue(pNode->fd,key,value);
     }
+    /* Put Master */
+    if(pNode != (tNode*)GetNode(cluster,MAX_NODE_NUM))
+    {
+        pNode = (tNode*)GetNode(cluster,MAX_NODE_NUM);
+        if(pNode->fd == 0)
+        {
+            ret = DBSetKeyValue(db->db,key,value);
+        }
+        else if(pNode->fd == -1)
+        {
+            pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
+            if(pNode->fd == -1)
+            {
+                return -1;
+            }
+            ret = RemoteDBSetKeyValue(pNode->fd,key,value);
+        }
+        else
+        {
+            ret = RemoteDBSetKeyValue(pNode->fd,key,value);
+        }
+    }
+    return ret;
 }
 /*
  * Get key/value
@@ -143,6 +169,7 @@ int ConfigPut(tConfigDB* db,const void* pKey,int KeySize,const void* pValue,int 
 int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValueSize)
 {
     tCluster * cluster = (tCluster*)db->cluster;
+    int ret = -1;
     tKey key;
     key.str = (char*)pKey;
     key.len = KeySize;
@@ -152,22 +179,49 @@ int ConfigGet(tConfigDB* db,const void* pKey,int KeySize,void* pValue,int *pValu
     unsigned int hash = gethash(key.str,key.len);
     hash = hash%MAX_NODE_NUM;/* distribute strategy */
     tNode* pNode = (tNode*)GetNode(cluster,hash);
+    /* hit local */
     if(pNode->fd == 0)
     {
-        DBGetKeyValue(db->db,key,&value);
+        ret = DBGetKeyValue(db->db,key,&value);
     }
-    else if(pNode->fd == -1)
+    else if(pNode->fd > 0)
+    {
+        ret = RemoteDBGetKeyValue(pNode->fd,key,&value);
+    }
+    else
     {
         pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
         if(pNode->fd == -1)
         {
             return -1;
         }
-        RemoteDBGetKeyValue(pNode->fd,key,&value);
+        ret = RemoteDBGetKeyValue(pNode->fd,key,&value);
     }
-    else
+    /* fail to get,get from master */
+    if(ret == -1)
     {
-        RemoteDBGetKeyValue(pNode->fd,key,&value);
+        if(pNode == (tNode*)GetNode(cluster,MAX_NODE_NUM))
+        {
+            return -1;
+        }
+        tNode* pNode = (tNode*)GetNode(cluster,MAX_NODE_NUM);
+        if(pNode->fd == 0)
+        {
+            ret = DBGetKeyValue(db->db,key,&value);
+        }
+        else if(pNode->fd > 0)
+        {
+            ret = RemoteDBGetKeyValue(pNode->fd,key,&value);
+        }
+        else
+        {
+            pNode->fd = RemoteDBCreate(db->filename,pNode->addr,pNode->port);
+            if(pNode->fd == -1)
+            {
+                return -1;
+            }
+            ret = RemoteDBGetKeyValue(pNode->fd,key,&value);
+        }  
     }
     *pValueSize = value.len;
     return SUCCESS;
@@ -209,17 +263,21 @@ int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
 /**********************************************/
 /*
  * hash
- * copy from tokyocabinet,I don't why so. 
+ * copy from tokyocabinet,I don't know why so. 
  */
 int gethash(const char *kbuf, int ksiz)
 {
-  unsigned int idx = 19780211;
-  unsigned int hash = 751;
-  const char *rp = kbuf + ksiz;
-  while(ksiz--)
-  {
-    idx = idx * 37 + *(unsigned char *)kbuf++;
-    hash = (hash * 31) ^ *(unsigned char *)--rp;
-  }
-  return hash;
+#ifdef HUAWEI_TEST
+    unsigned short hash = *(unsigned short*)kbuf;
+#else
+    unsigned int idx = 19780211;
+    unsigned int hash = 751;
+    const char *rp = kbuf + ksiz;
+    while(ksiz--)
+    {
+        idx = idx * 37 + *(unsigned char *)kbuf++;
+        hash = (hash * 31) ^ *(unsigned char *)--rp;
+    }
+#endif
+    return hash;
 }

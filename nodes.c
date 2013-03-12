@@ -25,11 +25,10 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
-
+#include "common.h"
 
 #define MAX_BUF_LEN         1024
 
-#define debug  printf
 /* tell other nodes who am i */
 int BroadcastMyself(int fd,char * addr,int port);
              
@@ -79,7 +78,7 @@ int GetHashValue(tCluster * cluster,int SumOfNodes,int * start)
         i = pNode->hash;
     }
     *start = prev;
-    return (next - prev)%2 == 0 ? (next - prev)/2 : (next - prev - 1)/2;
+    return (next - prev)%2 == 0 ? (next - prev)/2 + prev : (next - prev - 1)/2 + prev;
 }
 /* Get cloud nodes info */
 tNode *  GetNode(tCluster * cluster,int hash)
@@ -104,7 +103,7 @@ int  AddNode(tCluster * cluster,char * addr,int port)
     {
         pNode->hash = MAX_NODE_NUM;
         debug("AddNode start:%d     hash:%d\n",i,pNode->hash);
-        for(i=0;i<MAX_NODE_NUM;i++)
+        for(i=0;i<=MAX_NODE_NUM;i++)
         {
             cluster->nodes[i] = pNode; 
         }        
@@ -183,7 +182,7 @@ int AddClusterNodes(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],i
     {
         char addr[MAX_DATA_LEN];
         int port;
-        sscanf(ppData[i],"%s%d",addr,&port);
+        sscanf(ppData[DataNum-1-i],"%s%d",addr,&port);
         debug("pasrer %s:%d\n",addr,port);
         AddNode(cluster,addr,port);
     }

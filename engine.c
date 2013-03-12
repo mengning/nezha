@@ -32,12 +32,12 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <time.h>
+#include "common.h"
 
 #define MAX_BUF_LEN     1024
+          
 
-#define debug           printf
-
-#define MAX_TASK_NUM      0
+#define MAX_TASK_NUM      2
 pthread_t thread_id[MAX_TASK_NUM];
 tEvent event[MAX_TASK_NUM];
 tQueue taskq[MAX_TASK_NUM];
@@ -108,12 +108,17 @@ int ServiceEngine(tConfigDB* db)
         request = ServiceStart();
         tTaskNode *pnode = malloc(sizeof(tTaskNode));
         pnode->BufSize = MAX_BUF_LEN;
-        if(RecvData(request,pnode->Buf,&(pnode->BufSize)) == 0)
+        int ret = RecvData(request,pnode->Buf,&(pnode->BufSize));
+        if(ret == 0)
         {
-            /* close by peer */
+            continue;     
+        } 
+        if(ret < 0)
+        {
+            fprintf(stderr,"ServiceEngine RecvData Error,%s:%d\n",__FILE__,__LINE__); 
             ServiceStop(request);
-            continue;        
-        }        
+            continue;   
+        }     
         if(MAX_TASK_NUM > 0)
         {            
             pnode->req = request;
@@ -175,7 +180,12 @@ int Handler(tServiceHandler h,char *Buf,int BufSize)
 {
         int cmd = -1;
         int DataNum = -1;
-        ParseCmd(Buf,BufSize,&cmd,&DataNum);
+        int ret = ParseCmd(Buf,BufSize,&cmd,&DataNum);
+        if(ret == -1)
+        {
+            ErrorResponse(h,"Data Format Error!\n");
+            return -1; 
+        }
         if(cmd >= 0 && cmd > CTRL_CMD)
         {
             if(HandleControlRequest(h,Buf,BufSize) == -1)
@@ -271,7 +281,12 @@ int HandleOneRequest(tServiceHandler h,char *Buf,int BufSize)
         value.str = Data2;
         tDatabase  db = NULL;
         GetMdb(h,db);        
-        DBSetKeyValue(db,key,value);
+        ret = DBSetKeyValue(db,key,value);
+        if(ret == FAILURE)
+        {
+            ErrorResponse(h,"The key set failure!\n");
+            return -1; 
+        }
         BufSize = MAX_BUF_LEN;
         FormatData(Buf,&BufSize,SET_RSP);
         SendData(h,Buf,BufSize);                 

@@ -21,6 +21,8 @@
 #ifndef _CONFIG_DB_H_
 #define _CONFIG_DB_H_
 
+#define HUAWEI_TEST 1
+
 
 #ifdef __cplusplus
 extern "C" {

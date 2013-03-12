@@ -29,7 +29,7 @@
 
 #define debug   
 
-int sockfd = -1;
+int listenfd = -1;
 int epollfd = -1; 
 
 /* private macro */
@@ -41,37 +41,27 @@ int epollfd = -1;
         serveraddr.sin_port = htons(port);              \
         serveraddr.sin_addr.s_addr = inet_addr(addr);   \
         memset(&serveraddr.sin_zero, 0, 8);             \
-        sockfd = socket(PF_INET,SOCK_STREAM,0);         \
-        if(sockfd == -1)                                \
+        listenfd = socket(PF_INET,SOCK_STREAM,0);         \
+        if(listenfd == -1)                                \
         {                                               \
             fprintf(stderr,"Socket Error,%s:%d\n",      \
                             __FILE__,__LINE__);         \
-            close(sockfd);                              \
+            close(listenfd);                              \
             return -1;                                  \
         } 
 #define InitServer()                                    \
-        int ret = bind( sockfd,                         \
+        int ret = bind( listenfd,                         \
                         (struct sockaddr *)&serveraddr, \
                         sizeof(struct sockaddr));       \
         if(ret == -1)                                   \
         {                                               \
             fprintf(stderr,"Bind Error,%s:%d\n",        \
                             __FILE__,__LINE__);         \
-            close(sockfd);                              \
+            close(listenfd);                              \
             exit(-1);                                   \
         }                                               \
-        listen(sockfd,MAX_LISTEN_QUEUE); 
+        listen(listenfd,MAX_LISTEN_QUEUE); 
 
-#define InitClient()                                    \
-        int ret = connect(sockfd,                       \
-            (struct sockaddr *)&serveraddr,             \
-            sizeof(struct sockaddr));                   \
-        if(ret == -1)                                   \
-        {                                               \
-            fprintf(stderr,"Connect Error,%s:%d\n",     \
-                __FILE__,__LINE__);                     \
-            exit(-1);                                   \
-        } 
 int SetNonBlocking(int fd)
 {
     int opts;
@@ -103,21 +93,21 @@ int InitializeNetService(char * addr,short int port)
     struct epoll_event event;
     PrepareSocket(addr,port);
     epollfd = epoll_create(MAX_CONNECT_FD);
-    SetNonBlocking(sockfd);
-    event.data.fd = sockfd;
-    event.events = EPOLLIN | EPOLLRDHUP;
-    epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&event);
+    SetNonBlocking(listenfd);
+    event.data.fd = listenfd;
+    event.events = EPOLLIN;
+    epoll_ctl(epollfd,EPOLL_CTL_ADD,listenfd,&event);
     InitServer();
     return 0;    
 }
 
 int ShutdownNetService()
 {
-    if(sockfd == -1)
+    if(listenfd == -1)
     {
         return -1;
     }
-    close(sockfd);
+    close(listenfd);
     if(epollfd == -1)
     {
         return -1;
@@ -136,9 +126,27 @@ int ShutdownNetService()
  */
 tServiceHandler OpenRemoteService(char * addr,short int port)
 {
-    PrepareSocket(addr,port);
-    InitClient();
-    return (tServiceHandler)sockfd;
+    struct sockaddr_in serveraddr;  
+    struct sockaddr_in clientaddr;
+    socklen_t addr_len = sizeof(struct sockaddr);
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_port = htons(port);
+    serveraddr.sin_addr.s_addr = inet_addr(addr);
+    memset(&serveraddr.sin_zero, 0, 8);
+    int fd = socket(PF_INET,SOCK_STREAM,0);
+    if(fd == -1)
+    {
+        fprintf(stderr,"Socket Error,%s:%d\n", __FILE__,__LINE__);
+        close(fd);
+        return -1;
+    } 
+    int ret = connect(fd,(struct sockaddr *)&serveraddr,sizeof(struct sockaddr));
+    if(ret == -1)
+    {
+        fprintf(stderr,"Connect Error,%s:%d\n",__FILE__,__LINE__);
+        exit(-1);
+    } 
+    return (tServiceHandler)fd;
 }
 /*
  * CloseRemoteService - Only used in Client side,it terminate connection.
@@ -170,30 +178,36 @@ tServiceHandler ServiceStart()
 {
     while(1)
     {
-        struct epoll_event event;
-        int fdnum = epoll_wait(epollfd,&event,1,-1);
-        if(event.data.fd == sockfd)
+        struct epoll_event event[1];
+        int fdnum = epoll_wait(epollfd,event,1,-1);
+        if(event[0].data.fd == listenfd)
         {
             struct sockaddr_in clientaddr;
             socklen_t addr_len = sizeof(struct sockaddr);
-            int newfd = accept( sockfd,(struct sockaddr *)&clientaddr,&addr_len);
-            if(newfd == -1) 
+            int newfd = accept( listenfd,(struct sockaddr *)&clientaddr,&addr_len);
+            if(newfd < 0) 
             {
                 fprintf(stderr,"Accept Error,%s:%d\n", __FILE__,__LINE__);
             }
-            SetNonBlocking(newfd);
-            event.data.fd = newfd;
-            event.events = EPOLLIN;
-            epoll_ctl(epollfd,EPOLL_CTL_ADD,newfd,&event);
+            SetNonBlocking(newfd);        
+            struct epoll_event ev;
+            memset(&ev, 0, sizeof(ev));
+            ev.data.fd = newfd;
+            ev.events = EPOLLIN | EPOLLET;
+            epoll_ctl(epollfd,EPOLL_CTL_ADD,newfd,&ev);
         }
         /* close by peer */
-        else if((event.events & EPOLLIN) && (event.events & EPOLLRDHUP))
+        else if(event[0].events & EPOLLOUT)
         {
-            close(event.data.fd);
+            close(event[0].data.fd);
         }
-        else
+        else if(event[0].events & EPOLLIN)
         {
-            return (tServiceHandler)event.data.fd;
+            if(event[0].data.fd < 0)
+            {
+                continue;
+            }
+            return (tServiceHandler)event[0].data.fd;
         }
     }   
 }
