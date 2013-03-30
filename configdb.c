@@ -267,7 +267,7 @@ int ConfigDel(tConfigDB* db,const void* pKey,int KeySize)
  */
 int gethash(const char *kbuf, int ksiz)
 {
-#ifdef HUAWEI_TEST
+#if HUAWEI_TEST
     unsigned short hash = *(unsigned short*)kbuf;
 #else
     unsigned int idx = 19780211;

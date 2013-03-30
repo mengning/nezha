@@ -41,7 +41,9 @@ tCluster *  InitCluster()
     for(i=0;i<MAX_NODE_NUM;i++)
     {
         cluster->nodes[i] = NULL; 
-    }    
+    }
+    cluster->pHead = NULL;
+    cluster->pTail = NULL; 
     return cluster;    
 }
 /* Destroy Cluster */
@@ -95,6 +97,7 @@ int  AddNode(tCluster * cluster,char * addr,int port)
         return -1;
     }
     tNode* pNode = (tNode*)malloc(sizeof(tNode));
+    pNode->pNext = NULL;
     memcpy(pNode->addr,addr,strlen(addr));
     pNode->addr[strlen(addr)] = '\0';
     pNode->port = port;
@@ -106,7 +109,9 @@ int  AddNode(tCluster * cluster,char * addr,int port)
         for(i=0;i<=MAX_NODE_NUM;i++)
         {
             cluster->nodes[i] = pNode; 
-        }        
+        }
+        cluster->pHead = pNode;
+        cluster->pTail = pNode;   
     }
     else
     {
@@ -117,6 +122,8 @@ int  AddNode(tCluster * cluster,char * addr,int port)
         {
             cluster->nodes[i] = pNode; 
         } 
+        (cluster->pTail)->pNext = pNode;
+        cluster->pTail = pNode;
     }
     cluster->SumOfNodes ++;
     return 0; 
@@ -182,7 +189,7 @@ int AddClusterNodes(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],i
     {
         char addr[MAX_DATA_LEN];
         int port;
-        sscanf(ppData[DataNum-1-i],"%s%d",addr,&port);
+        sscanf(ppData[i],"%s%d",addr,&port);
         debug("pasrer %s:%d\n",addr,port);
         AddNode(cluster,addr,port);
     }
@@ -198,6 +205,7 @@ int ClusterNodesInfo(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],
     }
     *NodeNum = cluster->SumOfNodes;
     int i = 0; 
+#if 0
     int hash = 0;   
     while(hash < MAX_NODE_NUM)
     {
@@ -205,6 +213,14 @@ int ClusterNodesInfo(tCluster * cluster,char ppData[MAX_DATA_NUM][MAX_DATA_LEN],
         sprintf(ppData[i],"%s %d\0",pNode->addr,pNode->port);
         debug("ClusterNodesInfo :%s\n",ppData[i]);
         hash = pNode->hash;
+        i++;
+    }
+#endif
+    tNode* pNode = cluster->pHead;
+    while(pNode != NULL)
+    {
+        sprintf(ppData[i],"%s %d\0",pNode->addr,pNode->port);
+        pNode = pNode->pNext;
         i++;
     }
     return 0;  

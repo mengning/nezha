@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 
-#define debug           
+#define debug     printf      
 
 #define SUCCESS 		0
 #define FAILURE 		(-1)
